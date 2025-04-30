@@ -2,11 +2,15 @@
 # © 2016 Sodexis
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
+from datetime import datetime
+from datetime import timedelta
 import logging
 
-from datetime import datetime, timedelta
-from odoo import models, fields, api
+from odoo import api
+from odoo import fields
+from odoo import models
 from odoo.addons.component.core import Component
+
 from ..magento_backend.common import IMPORT_DELTA_BUFFER
 
 _logger = logging.getLogger(__name__)
@@ -55,7 +59,6 @@ class MagentoStoreview(models.Model):
     catalog_price_tax_included = fields.Boolean(string='Prices include tax')
     is_multi_company = fields.Boolean(related="backend_id.is_multi_company")
 
-    # @api.multi
     def import_sale_orders(self):
         import_start_time = datetime.now()
         for storeview in self:

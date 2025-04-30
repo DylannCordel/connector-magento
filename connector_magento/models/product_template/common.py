@@ -4,9 +4,12 @@
 
 import logging
 
-from odoo import api, models, fields
+from odoo import api
+from odoo import fields
+from odoo import models
 from odoo.addons.component.core import Component
 from odoo.addons.queue_job.job import identity_exact
+
 # from odoo.addons.queue_job.job import job, related_action
 from ...components.backend_adapter import MAGENTO_DATETIME_FORMAT
 
@@ -76,7 +79,7 @@ class MagentoProductTemplate(models.Model):
                                     required=True)
     magento_id = fields.Integer('Magento ID')
     # magento_name = fields.Char('Name', translate=True)
-    # magento_price = fields.Float('Backend Preis', default=0.0, digits=dp.get_precision('Product Price'),)
+    # magento_price = fields.Float('Backend Preis', default=0.0, digits='Product Price',)
     # magento_stock_item_ids = fields.One2many(
     #     comodel_name='magento.stock.item',
     #     inverse_name='magento_product_template_binding_id',
@@ -122,7 +125,6 @@ class MagentoProductTemplate(models.Model):
          ),
     ]
 
-    # @api.multi
     # @job(default_channel='root.magento')
     def sync_from_magento(self):
         for binding in self:
@@ -130,7 +132,6 @@ class MagentoProductTemplate(models.Model):
             job = self.env['queue.job'].search([('uuid', '=', delayed.uuid)])
             binding.odoo_id.with_context(connector_no_export=True).job_ids += job
 
-    # @api.multi
     # @job(default_channel='root.magento')
     def run_sync_from_magento(self):
         self.ensure_one()
@@ -169,7 +170,6 @@ class ProductTemplate(models.Model):
         comodel_name='product.category.public',
         string='Root Categories',
         compute='_compute_root_category_ids',
-        invisible=True,
     )
 
     @api.depends('website_ids')
@@ -230,25 +230,25 @@ class ProductTemplate(models.Model):
         })
         return action
 
-    @api.model
-    def create(self, vals):
-        # Avoid to create variants
-        if vals.get('auto_create_variants', True):
-            # If auto create is true - then create the normal way
-            return super(ProductTemplate, self).create(vals)
-        # Else avoid creating the variants
-        me = self.with_context(create_product_product=True)
+    @api.model_create_multi
+    def create(self, vals_list):
+        instances = []
+        for vals in vals_list:
+            # Avoid to create variants
+            if vals.get('auto_create_variants', True):
+                # If auto create is true - then create the normal way
+                instances += super(ProductTemplate, self).create([vals])
+            # Else avoid creating the variants
+            me = self.with_context(create_product_product=True)
+            instances += super(ProductTemplate, me).create([vals])
+        return instances
 
-        return super(ProductTemplate, me).create(vals)
-
-    # @api.multi
     def _create_variant_ids(self):
         for rec in self:
             if rec.auto_create_variants:
                 super(ProductTemplate, rec)._create_variant_ids()
         return True
 
-    # @api.multi
     def write(self, vals):
         for tpl in self:
             if vals.get('auto_create_variants', tpl.auto_create_variants):

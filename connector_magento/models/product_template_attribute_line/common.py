@@ -1,5 +1,8 @@
 import logging
-from odoo import models, fields, api
+
+from odoo import api
+from odoo import fields
+from odoo import models
 
 _logger = logging.getLogger(__name__)
 
@@ -50,15 +53,18 @@ class MagentoTemplateAttributeline(models.Model):
         line = super(MagentoTemplateAttributeline, self).write(vals)
         return line
 
-    @api.model
-    def create(self, vals):
-        # Do read product_tmpl_id using the magento_tmpl_id
-        tmpl_binding = self.env['magento.product.template'].browse(vals['magento_template_id'])
-        vals['product_tmpl_id'] = tmpl_binding.odoo_id.id
-        # Do resolve the attribute id from the magento binding
-        binding = self.env['magento.product.attribute'].browse(vals['magento_attribute_id'])
-        vals['attribute_id'] = binding.odoo_id.id
-        return super(MagentoTemplateAttributeline, self.with_context(create_product_product=False)).create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        instances = []
+        for vals in vals_list:
+            # Do read product_tmpl_id using the magento_tmpl_id
+            tmpl_binding = self.env['magento.product.template'].browse(vals['magento_template_id'])
+            vals['product_tmpl_id'] = tmpl_binding.odoo_id.id
+            # Do resolve the attribute id from the magento binding
+            binding = self.env['magento.product.attribute'].browse(vals['magento_attribute_id'])
+            vals['attribute_id'] = binding.odoo_id.id
+            instances += super(MagentoTemplateAttributeline, self.with_context(create_product_product=False)).create([vals])
+        return instances
 
 
 class ProductTemplateAttributeline(models.Model):

@@ -3,9 +3,14 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 
-from datetime import datetime, timedelta
-from odoo import models, fields, api
+from datetime import datetime
+from datetime import timedelta
+
+from odoo import api
+from odoo import fields
+from odoo import models
 from odoo.addons.component.core import Component
+
 from ..magento_backend.common import IMPORT_DELTA_BUFFER
 
 
@@ -41,7 +46,6 @@ class MagentoWebsite(models.Model):
     )
     is_multi_company = fields.Boolean(related="backend_id.is_multi_company")
 
-    # @api.multi
     def import_partners(self):
         import_start_time = datetime.now()
         for website in self:

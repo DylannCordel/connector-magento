@@ -2,18 +2,22 @@
 # © 2016 Sodexis
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
+from collections import defaultdict
 import logging
 import xmlrpc.client
 
-from collections import defaultdict
-
-from odoo import models, fields, api
-from odoo.addons.connector.exception import IDMissingInBackend
+from odoo import api
+from odoo import fields
+from odoo import models
 from odoo.addons.component.core import Component
 from odoo.addons.component_event import skip_if
+from odoo.addons.connector.exception import IDMissingInBackend
+from odoo.exceptions import MissingError
+
 # # from odoo.addons.queue_job.job import job3, related_action
-from odoo.exceptions import UserError, MissingError
+from odoo.exceptions import UserError
 from odoo.tools.translate import _
+
 from ...components.backend_adapter import MAGENTO_DATETIME_FORMAT
 
 _logger = logging.getLogger(__name__)
@@ -119,7 +123,6 @@ class MagentoProductProduct(models.Model):
     )
 
 
-     # @api.multi
     # @related_action(action='related_action_unwrap_binding')
     # @job(default_channel='root.magento.product_to_magento')
     # def run_sync_to_magento(self):
@@ -133,7 +136,6 @@ class MagentoProductProduct(models.Model):
 
     # @job(default_channel='root.magento')
     # @related_action(action='related_action_unwrap_binding')
-    # @api.multi
     def export_inventory(self, fields=None):
         """ Export the inventory configuration and quantity of a product. """
         self.ensure_one()
@@ -141,7 +143,6 @@ class MagentoProductProduct(models.Model):
             exporter = work.component(usage='product.inventory.exporter')
             return exporter.run(self, fields)
 
-    # @api.multi
     def recompute_magento_qty(self):
         """ Check if the quantity in the stock location configured
         on the backend has changed since the last export.
@@ -163,7 +164,6 @@ class MagentoProductProduct(models.Model):
                                                 self.browse(product_ids))
         return True
 
-    # @api.multi
     def _recompute_magento_qty_backend(self, backend, products,
                                        read_fields=None):
         """ Recompute the products quantity for one backend.
@@ -199,7 +199,6 @@ class MagentoProductProduct(models.Model):
                 if new_qty != product['magento_qty']:
                     self.browse(product['id']).magento_qty = new_qty
 
-    # @api.multi
     def _magento_qty(self, product, backend, location, stock_field):
         """ Return the current quantity for one product.
 

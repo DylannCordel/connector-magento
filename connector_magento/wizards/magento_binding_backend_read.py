@@ -2,15 +2,18 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import base64
-import logging
-import io
 import contextlib
+import io
 import json
+import logging
 
-from odoo.exceptions import UserError
-
-from odoo import api, fields, models, tools, _
+from odoo import _
+from odoo import api
+from odoo import fields
+from odoo import models
+from odoo import tools
 from odoo.addons.component import core
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
@@ -109,7 +112,6 @@ class MagentoBindingBackendRead(models.TransientModel):
         required=True
     )
 
-    # @api.multi
     def action_get_info(self):
         self.ensure_one()
 

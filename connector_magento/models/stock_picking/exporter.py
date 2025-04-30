@@ -6,7 +6,7 @@ import xmlrpc.client
 import odoo
 from odoo import _
 from odoo.addons.component.core import Component
-from odoo.addons.queue_job.exception import NothingToDoJob
+from odoo.addons.queue_job.exception import JobError
 
 
 class MagentoPickingExporter(Component):
@@ -67,7 +67,7 @@ class MagentoPickingExporter(Component):
         def get_lines_info():
             lines_info = self._get_lines_info(binding)
             if not lines_info:
-                raise NothingToDoJob(
+                raise JobError(
                     _('Canceled: the delivery order does not '
                       'contain lines from the original sale order.'))
             return lines_info
@@ -93,7 +93,7 @@ class MagentoPickingExporter(Component):
                 # <Fault 102: u"Impossible de faire
                 # l\'exp\xe9dition de la commande.">
                 if err.faultCode == 102:
-                    raise NothingToDoJob(
+                    raise JobError(
                         'Canceled: the delivery order already '
                         'exists on Magento (fault 102).')
                 raise

@@ -1,7 +1,10 @@
 # © 2013-2019 Guewen Baconnier,Camptocamp SA,Akretion
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from odoo import api, models, fields
+from odoo import api
+from odoo import fields
+from odoo import models
+
 # # from odoo.addons.queue_job.job import job3, related_action
 from odoo.addons.queue_job.job import identity_exact
 
@@ -25,10 +28,10 @@ class MagentoBinding(models.AbstractModel):
         ondelete='restrict',
     )
     # fields.Char because 0 is a valid Magento ID
-    external_id = fields.Char(string='ID on Magento', oldname='magento_id')
+    external_id = fields.Char(string='ID on Magento')
 
     data = fields.Json(
-        string='Raw Json Data',
+        string='Json Data',
         help='Serialized data from Magento.',
     )
     data_str = fields.Text(
@@ -67,7 +70,6 @@ class MagentoBinding(models.AbstractModel):
 
     # @job(default_channel='root.magento')
     # @related_action(action='related_action_unwrap_binding')
-    # @api.multi
     def export_record(self, fields=None, **kwargs):
         """ Export a record on Magento """
         self.ensure_one()

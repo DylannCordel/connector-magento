@@ -4,10 +4,14 @@
 
 import logging
 import xmlrpc.client
-from odoo import api, models, fields
+
+from odoo import api
+from odoo import fields
+from odoo import models
+from odoo.addons.component.core import Component
+
 # # from odoo.addons.queue_job.job import job3, related_action
 from odoo.addons.connector.exception import IDMissingInBackend
-from odoo.addons.component.core import Component
 
 _logger = logging.getLogger(__name__)
 
@@ -32,7 +36,6 @@ class MagentoStockPicking(models.Model):
 
     # @job(default_channel='root.magento')
     # @related_action(action='related_action_unwrap_binding')
-    # @api.multi
     def export_tracking_number(self):
         """ Export the tracking number of a delivery order. """
         self.ensure_one()
@@ -42,7 +45,6 @@ class MagentoStockPicking(models.Model):
 
     # @job(default_channel='root.magento')
     # @related_action(action='related_action_unwrap_binding')
-    # @api.multi
     def export_picking_done(self, with_tracking=True):
         """ Export a complete or partial delivery order. """
         # with_tracking is True to keep a backward compatibility (jobs that

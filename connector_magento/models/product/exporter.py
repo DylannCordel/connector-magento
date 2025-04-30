@@ -4,16 +4,13 @@
 
 import base64
 import logging
-from datetime import datetime
 
-import magic
-from slugify import slugify
-
-import odoo
-from odoo import _
 from odoo.addons.component.core import Component
 from odoo.addons.connector.components.mapper import mapping
 from odoo.addons.connector_magento.components.backend_adapter import MAGENTO_DATETIME_FORMAT
+
+import magic
+from slugify import slugify
 
 _logger = logging.getLogger(__name__)
 

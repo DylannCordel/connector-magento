@@ -4,11 +4,16 @@
 
 import logging
 import xmlrpc.client
-from odoo import models, fields, api, _
-from odoo.addons.connector.exception import IDMissingInBackend
+
+from odoo import _
+from odoo import api
+from odoo import fields
+from odoo import models
 from odoo.addons.component.core import Component
-from ...components.backend_adapter import MAGENTO_DATETIME_FORMAT
+from odoo.addons.connector.exception import IDMissingInBackend
 from odoo.tools.translate import html_translate
+
+from ...components.backend_adapter import MAGENTO_DATETIME_FORMAT
 
 _logger = logging.getLogger(__name__)
 
@@ -40,7 +45,7 @@ class ProductCategoryPublic(models.Model):
     sequence = fields.Integer(help="Gives the sequence order when displaying a list of product categories.", index=True, default=_default_sequence)
     website_description = fields.Html('Category Description', sanitize_overridable=True, sanitize_attributes=False, translate=html_translate, sanitize_form=False)
     product_tmpl_ids = fields.Many2many('product.template', relation='product_category_public_product_template_rel')
-    parent_path = fields.Char(index=True, unaccent=False)
+    parent_path = fields.Char(index=True)
     parents_and_self = fields.Many2many('product.category.public', compute='_compute_parents_and_self')
     display_name = fields.Char(compute='_compute_display_name', )
 
@@ -85,7 +90,7 @@ class MagentoProductCategory(models.Model):
         'magento.binding',
         'image.mixin',
     ]
-    odoo_id = fields.Many2one('product.category.public')
+    odoo_id = fields.Many2one('product.category.public', required=True, ondelete="cascade")
 
 class ProductCategoryAdapter(Component):
     _name = 'magento.product.category.adapter'

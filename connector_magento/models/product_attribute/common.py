@@ -1,7 +1,10 @@
 import logging
 
-from odoo import models, fields, api
+from odoo import api
+from odoo import fields
+from odoo import models
 from odoo.addons.component.core import Component
+
 # from odoo.addons.queue_job.job import job, related_action, identity_exact
 from odoo.addons.queue_job.job import identity_exact
 
@@ -59,23 +62,21 @@ class MagentoProductAttribute(models.Model):
          'This attribute is already mapped to a magento backend!')
     ]
 
-    @api.model
-    def create(self, vals):
+    @api.model_create_multi
+    def create(self, vals_list):
         '''
         This can not be correct !
         if 'attribute_set_ids' not in vals:
             backend = self.env['magento.backend'].browse(vals['backend_id'])
             vals['attribute_set_ids'] = [(4, backend.id)]
         '''
-        return super(MagentoProductAttribute, self).create(vals)
+        return super(MagentoProductAttribute, self).create(vals_list)
 
-    # @api.multi
     def export_product_attribute_button(self):
         self.ensure_one()
         self.with_delay(priority=20,
                         identity_key=identity_exact).export_product_attribute()
 
-    # @api.multi
     def import_product_attribute_button(self):
         self.ensure_one()
         self.with_delay(priority=20,
@@ -83,7 +84,6 @@ class MagentoProductAttribute(models.Model):
 
     # @job(default_channel='root.magento')
     # @related_action(action='related_action_unwrap_binding')
-    # @api.multi
     def export_product_attribute(self, fields=None):
         """ Export a simple attribute. """
         self.ensure_one()
@@ -93,7 +93,6 @@ class MagentoProductAttribute(models.Model):
 
     # @job(default_channel='root.magento')
     # @related_action(action='related_action_unwrap_binding')
-    # @api.multi
     def import_product_attribute(self):
         """ Import a simple attribute. """
         self.ensure_one()

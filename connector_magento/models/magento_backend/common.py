@@ -2,18 +2,23 @@
 # © 2016 Sodexis
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
+from contextlib import contextmanager
+from datetime import datetime
+from datetime import timedelta
 import logging
 
-from contextlib import contextmanager
-
-from datetime import datetime, timedelta
-from odoo import models, fields, api, _
-from odoo.tools import ustr
-from odoo.exceptions import UserError
+from odoo import _
+from odoo import api
+from odoo import fields
+from odoo import models
 from odoo.addons.queue_job.job import identity_exact
+from odoo.exceptions import UserError
+from odoo.tools import ustr
+
+from ...components.backend_adapter import MagentoAPI
 
 # from odoo.addons.connector.models.checkpoint import add_checkpoint
-from ...components.backend_adapter import MagentoLocation, MagentoAPI
+from ...components.backend_adapter import MagentoLocation
 
 _logger = logging.getLogger(__name__)
 
@@ -233,7 +238,6 @@ class MagentoBackend(models.Model):
          "A backend with the same sale prefix already exists")
     ]
 
-    # @api.multi
     def check_magento_structure(self):
         """ Used in each data import.
 
@@ -246,7 +250,6 @@ class MagentoBackend(models.Model):
         return True
 
     @contextmanager
-    # @api.multi
     def work_on(self, model_name, **kwargs):
         self.ensure_one()
         lang = self.default_lang_id
@@ -276,7 +279,6 @@ class MagentoBackend(models.Model):
                     model_name, magento_api=magento_api, **kwargs) as work:
                 yield work
 
-    # @api.multi
     def add_checkpoint(self, record):
         """ Add a checkpoint for the given record """
         self.ensure_one()
@@ -284,7 +286,6 @@ class MagentoBackend(models.Model):
         # return add_checkpoint(self.env, record._name, record.id,
         #                       self._name, self.id)
 
-    # @api.multi
     def synchronize_metadata(self):
         try:
             for backend in self:
@@ -303,7 +304,6 @@ class MagentoBackend(models.Model):
                   "Here is the error:\n%s") %
                 ustr(e))
 
-    # @api.multi
     def import_partners(self):
         """ Import partners from all websites """
         for backend in self:
@@ -311,7 +311,6 @@ class MagentoBackend(models.Model):
             backend.website_ids.import_partners()
         return True
 
-    # @api.multi
     def import_sale_orders(self):
         """ Import sale orders from all store views """
         storeview_obj = self.env['magento.storeview']
@@ -319,9 +318,6 @@ class MagentoBackend(models.Model):
         storeviews.import_sale_orders()
         return True
 
-
-
-    # @api.multi
     def import_customer_groups(self):
         for backend in self:
             backend.check_magento_structure()
@@ -330,7 +326,6 @@ class MagentoBackend(models.Model):
             )
         return True
 
-    # @api.multi
     def _import_from_date(self, model, from_date_field):
         import_start_time = datetime.now()
         for backend in self:
@@ -358,22 +353,21 @@ class MagentoBackend(models.Model):
         next_time = fields.Datetime.to_string(next_time)
         self.write({from_date_field: next_time})
 
-    # @api.multi
     def import_product_categories(self):
         self._import_from_date('magento.product.category',
                                'import_categories_from_date')
         return True
 
-    # @api.multi
     def import_product_product(self):
         self._import_from_date('magento.product.product',
                                'import_products_from_date')
         return True
+        
     def import_product_template(self):
         self._import_from_date('magento.product.template',
                                'import_configurables_from_date')
         return True
-    # @api.multi
+        
     def import_tax_classes(self):
         """ Import tax class """
         for backend in self:
@@ -387,7 +381,6 @@ class MagentoBackend(models.Model):
             self.env['magento.product.attribute.set'].with_delay(identity_key=identity_exact).import_batch(backend)
         return True
 
-    # @api.multi
     def _domain_for_update_product_stock_qty(self):
         return [
             ('backend_id', 'in', self.ids),
@@ -395,7 +388,6 @@ class MagentoBackend(models.Model):
             ('no_stock_sync', '=', False),
         ]
 
-    # @api.multi
     def update_product_stock_qty(self):
         mag_product_obj = self.env['magento.product.product']
         domain = self._domain_for_update_product_stock_qty()
@@ -483,21 +475,18 @@ class MagentoConfigSpecializer(models.AbstractModel):
     def _parent(self):
         return getattr(self, self._parent_name)
 
-    # @api.multi
     def _compute_account_analytic_id(self):
         for this in self:
             this.account_analytic_id = (
                 this.specific_account_analytic_id or
                 this._parent.account_analytic_id)
 
-    # @api.multi
     def _compute_fiscal_position_id(self):
         for this in self:
             this.fiscal_position_id = (
                 this.specific_fiscal_position_id or
                 this._parent.fiscal_position_id)
 
-    # @api.multi
     def _compute_warehouse_id(self):
         for this in self:
             this.warehouse_id = (

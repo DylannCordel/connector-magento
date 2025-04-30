@@ -1,20 +1,21 @@
 # Copyright 2017 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
+from datetime import datetime
+from datetime import timedelta
 import logging
-
 from re import search as re_search
-from datetime import datetime, timedelta
 
 from odoo import _
 from odoo.addons.component.core import Component
 from odoo.addons.connector.components.mapper import mapping
-from odoo.addons.queue_job.exception import NothingToDoJob, FailedJobError
+from odoo.addons.queue_job.exception import FailedJobError
+from odoo.addons.queue_job.exception import JobError
+
 from ...components.mapper import normalize_datetime
 from ...exception import OrderImportRuleRetry
 
 _logger = logging.getLogger(__name__)
-
 
 class SaleOrderBatchImporter(Component):
     _name = 'magento.sale.order.batch.importer'
@@ -60,15 +61,17 @@ class SaleImportRule(Component):
 
     def _rule_never(self, record, method):
         """ Never import the order """
-        raise NothingToDoJob('Orders with payment method %s '
-                             'are never imported.' %
-                             record['payment']['method'])
+        raise JobError(
+            'Orders with payment method %s are never imported.' % record['payment']['method']
+        )
+        return False
 
     def _rule_authorized(self, record, method):
         """ Import the order only if payment has been authorized. """
         if not record.get('payment', {}).get('base_amount_authorized'):
             raise OrderImportRuleRetry('The order has not been authorized.\n'
                                        'The import will be retried later.')
+        return True
 
     def _rule_paid(self, record, method):
         """ Import the order only if it has received a payment, or if there
@@ -77,6 +80,7 @@ class SaleImportRule(Component):
         if record['grand_total'] and amount_paid <= 0:
             raise OrderImportRuleRetry('The order has not been paid.\n'
                                        'The import will be retried later.')
+        return True
 
     _rules = {'always': _rule_always,
               'paid': _rule_paid,
@@ -84,22 +88,23 @@ class SaleImportRule(Component):
               'never': _rule_never,
               }
 
-    def _rule_global(self, record, method):
+    def _rule_global(self, record, method) -> bool:
         """ Rule always executed, whichever is the selected rule """
         # the order has been canceled since the job has been created
         order_id = record['increment_id']
         if record['state'] == 'canceled':
-            raise NothingToDoJob('Order %s canceled' % order_id)
+            raise JobError('Order %s canceled' % order_id)
         max_days = method.days_before_cancel
         if max_days:
             fmt = '%Y-%m-%d %H:%M:%S'
             order_date = datetime.strptime(record['created_at'], fmt)
             if order_date + timedelta(days=max_days) < datetime.now():
-                raise NothingToDoJob('Import of the order %s canceled '
-                                     'because it has not been paid since %d '
-                                     'days' % (order_id, max_days))
+                raise JobError('Import of the order %s canceled '
+                               'because it has not been paid since %d '
+                               'days' % (order_id, max_days))
+        return True
 
-    def check(self, record):
+    def check(self, record) -> bool:
         """ Check whether the current sale order should be imported
         or not. It will actually use the payment method configuration
         and see if the choosed rule is fullfilled.
@@ -107,6 +112,7 @@ class SaleImportRule(Component):
         :returns: True if the sale order should be imported
         :rtype: boolean
         """
+        breakpoint()
         payment_method = record['payment']['method']
         method = self.env['account.payment.mode'].search(
             [('name', '=', payment_method)],
@@ -122,8 +128,10 @@ class SaleImportRule(Component):
                 "- Eventually link the Payment Mode to an existing Workflow "
                 "Process or create a new one." % (payment_method,
                                                   payment_method))
-        self._rule_global(record, method)
-        self._rules[method.import_rule](self, record, method)
+        return (
+            self._rule_global(record, method)
+            and self._rules[method.import_rule](self, record, method)
+        )
 
 
 class SaleOrderImportMapper(Component):

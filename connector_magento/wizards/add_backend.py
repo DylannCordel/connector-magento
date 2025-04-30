@@ -2,13 +2,16 @@
 # Copyright <YEAR(S)> <AUTHOR(S)>
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from odoo import api, models, fields, _
+from odoo import _
+from odoo import api
+from odoo import fields
+from odoo import models
 
 
 class WizardModel(models.TransientModel):
     _name = "connector_magento.add_backend.wizard"
+    _description = "Wizard model"
 
-    # @api.multi
     def get_default_object(self, model):
         domain = []
         active_ids = self.env.context.get('active_ids', False)
@@ -21,18 +24,15 @@ class WizardModel(models.TransientModel):
         if active_model == model:
             return export.search(domain)
 
-    # @api.multi
     def get_default_model(self):
         model = self.env.context.get('active_model', False)
         if model:
             return self.env['ir.model'].search([('model', '=', model)], limit=1).id
         return False
 
-    # @api.multi
     def get_default_backend(self):
         return self.env['magento.backend'].search([], limit=1)
 
-    # @api.multi
     def _get_ids_and_model(self):
         active_model = self.env.context.get('active_model', False)
         binding_field= 'magento_bind_ids'
@@ -49,7 +49,6 @@ class WizardModel(models.TransientModel):
         else:
             raise ValueError('Model not supported')
 
-    # @api.multi
     def check_backend_binding(self, to_export_ids=None, dest_model=None):
         if not dest_model or not to_export_ids:
             (to_export_ids, dest_model) = self._get_ids_and_model()

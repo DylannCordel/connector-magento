@@ -1,0 +1,11 @@
+[project]
+name = "odoo-addons-oca-bank-connector-magento"
+version = "18.0.1.0.0"
+dependencies = [
+    "connector_ecommerce==18.0.*",
+]
+classifiers=[
+    "Programming Language :: Python",
+    "Framework :: Odoo",
+    "Framework :: Odoo :: 18.0",
+]

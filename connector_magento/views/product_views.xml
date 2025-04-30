@@ -71,7 +71,7 @@
                     </group>
                     <notebook>
                         <page name="product_links" string="Products Links"
-                              attrs="{'invisible' :[('product_type','!=','grouped')]}">
+                              invisible="product_type != grouped">
                             <field name="product_links" nolabel="1" colspan="4">
                                 <tree editable="bottom">
                                     <field name="name"/>

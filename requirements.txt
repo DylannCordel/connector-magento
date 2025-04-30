@@ -1,1 +1,4 @@
-vcrpy
+python-magic
+python-slugify
+# suds==1.1.2 ; python_version < '3.11'
+# suds==1.2.0 ; python_version >= '3.11'

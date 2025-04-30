@@ -15,10 +15,12 @@ are already bound, to update the last sync date.
 """
 
 import logging
-from odoo import fields, _
-from odoo.addons.component.core import AbstractComponent, Component
+
+from odoo import _
+from odoo import fields
+from odoo.addons.component.core import AbstractComponent
+from odoo.addons.component.core import Component
 from odoo.addons.connector.exception import IDMissingInBackend
-from odoo.addons.queue_job.exception import NothingToDoJob
 
 _logger = logging.getLogger(__name__)
 
@@ -92,13 +94,7 @@ class MagentoImporter(AbstractComponent):
             if importer is None:
                 importer = self.component(usage='record.importer',
                                           model_name=binding_model)
-            try:
-                importer.run(external_id, **kwargs)
-            except NothingToDoJob:
-                _logger.info(
-                    'Dependency import of %s(%s) has been ignored.',
-                    binding_model._name, external_id
-                )
+            importer.run(external_id, **kwargs)
 
     def _import_dependencies(self, **kwargs):
         """ Import the dependencies for the record

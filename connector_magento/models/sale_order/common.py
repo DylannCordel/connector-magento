@@ -5,12 +5,15 @@
 import logging
 import xmlrpc.client
 
-import odoo.addons.decimal_precision as dp
+from odoo import _
+from odoo import api
+from odoo import fields
+from odoo import models
 
-from odoo import models, fields, api, _
-from odoo.addons.connector.exception import IDMissingInBackend
 # from odoo.addons.queue_job.job import job3
 from odoo.addons.component.core import Component
+from odoo.addons.connector.exception import IDMissingInBackend
+import odoo.addons.decimal_precision as dp
 
 from ...components.backend_adapter import MAGENTO_DATETIME_FORMAT
 
@@ -34,11 +37,11 @@ class MagentoSaleOrder(models.Model):
     )
     total_amount = fields.Float(
         string='Total amount',
-        digits=dp.get_precision('Account')
+        digits='Account'
     )
     total_amount_tax = fields.Float(
         string='Total amount w. tax',
-        digits=dp.get_precision('Account')
+        digits='Account'
     )
     magento_order_id = fields.Integer(string='Magento Order ID',
                                       help="'order_id' field in Magento")
@@ -53,7 +56,6 @@ class MagentoSaleOrder(models.Model):
                                readonly=True)
 
     # @job(default_channel='root.magento')
-    # @api.multi
     def export_state_change(self, allowed_states=None,
                             comment=None, notify=None):
         """ Change state of a sales order on Magento """
@@ -115,7 +117,6 @@ class SaleOrder(models.Model):
                     description=job_descr
                 ).export_state_change(allowed_states=['cancel'])
 
-    # @api.multi
     def write(self, vals):
         if vals.get('state') == 'cancel':
             self._magento_cancel()
@@ -138,7 +139,6 @@ class SaleOrder(models.Model):
                 description=job_descr
             ).export_state_change()
 
-    # @api.multi
     def copy(self, default=None):
         self_copy = self.with_context(__copy_from_quotation=True)
         new = super(SaleOrder, self_copy).copy(default=default)
@@ -170,24 +170,27 @@ class MagentoSaleOrderLine(models.Model):
         required=False,
     )
     tax_rate = fields.Float(string='Tax Rate',
-                            digits=dp.get_precision('Account'))
+                            digits='Account')
     notes = fields.Char()
 
-    @api.model
-    def create(self, vals):
-        magento_order_id = vals['magento_order_id']
-        binding = self.env['magento.sale.order'].browse(magento_order_id)
-        vals['order_id'] = binding.odoo_id.id
-        binding = super(MagentoSaleOrderLine, self).create(vals)
-        # FIXME triggers function field
-        # The amounts (amount_total, ...) computed fields on 'sale.order' are
-        # not triggered when magento.sale.order.line are created.
-        # It might be a v8 regression, because they were triggered in
-        # v7. Before getting a better correction, force the computation
-        # by writing again on the line.
-        # line = binding.odoo_id
-        # line.write({'price_unit': line.price_unit})
-        return binding
+    @api.model_create_multi
+    def create(self, vals_list):
+        instances = []
+        for vals in vals_list:
+            magento_order_id = vals['magento_order_id']
+            binding = self.env['magento.sale.order'].browse(magento_order_id)
+            vals['order_id'] = binding.odoo_id.id
+            binding = super(MagentoSaleOrderLine, self).create([vals])[0]
+            # FIXME triggers function field
+            # The amounts (amount_total, ...) computed fields on 'sale.order' are
+            # not triggered when magento.sale.order.line are created.
+            # It might be a v8 regression, because they were triggered in
+            # v7. Before getting a better correction, force the computation
+            # by writing again on the line.
+            # line = binding.odoo_id
+            # line.write({'price_unit': line.price_unit})
+            instances.append(binding)
+        return instances
 
 
 class SaleOrderLine(models.Model):
@@ -199,26 +202,28 @@ class SaleOrderLine(models.Model):
         string="Magento Bindings",
     )
 
-    @api.model
-    def create(self, vals):
-        old_line_id = None
-        if self.env.context.get('__copy_from_quotation'):
-            # when we are copying a sale.order from a canceled one,
-            # the id of the copied line is inserted in the vals
-            # in `copy_data`.
-            old_line_id = vals.pop('__copy_from_line_id', None)
-        new_line = super(SaleOrderLine, self).create(vals)
-        if old_line_id:
-            # link binding of the canceled order lines to the new order
-            # lines, happens when we are using the 'New Copy of
-            # Quotation' button on a canceled sales order
-            binding_model = self.env['magento.sale.order.line']
-            bindings = binding_model.search([('odoo_id', '=', old_line_id)])
-            if bindings:
-                bindings.write({'odoo_id': new_line.id})
-        return new_line
+    @api.model_create_multi
+    def create(self, vals_list):
+        instances = []
+        for vals in vals_list:
+            old_line_id = None
+            if self.env.context.get('__copy_from_quotation'):
+                # when we are copying a sale.order from a canceled one,
+                # the id of the copied line is inserted in the vals
+                # in `copy_data`.
+                old_line_id = vals.pop('__copy_from_line_id', None)
+            new_line = super(SaleOrderLine, self).create(vals)
+            if old_line_id:
+                # link binding of the canceled order lines to the new order
+                # lines, happens when we are using the 'New Copy of
+                # Quotation' button on a canceled sales order
+                binding_model = self.env['magento.sale.order.line']
+                bindings = binding_model.search([('odoo_id', '=', old_line_id)])
+                if bindings:
+                    bindings.write({'odoo_id': new_line.id})
+            instances.append(new_line)
+        return instances
 
-    # @api.multi
     def copy_data(self, default=None):
         data = super(SaleOrderLine, self).copy_data(default=default)[0]
         if self.env.context.get('__copy_from_quotation'):

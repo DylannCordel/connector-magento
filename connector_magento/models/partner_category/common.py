@@ -2,7 +2,8 @@
 # © 2016 Sodexis
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from odoo import models, fields
+from odoo import fields
+from odoo import models
 from odoo.addons.component.core import Component
 
 
@@ -19,6 +20,7 @@ class ResPartnerCategory(models.Model):
 
 class MagentoResPartnerCategory(models.Model):
     _name = 'magento.res.partner.category'
+    _description = "Magento partner category"
     _inherit = 'magento.binding'
     _inherits = {'res.partner.category': 'odoo_id'}
 
