@@ -16,7 +16,7 @@
             <page name="connector" position="inside">
                 <group string="Magento Bindings" col="6">
                     <field name="magento_bind_ids" nolabel="1" colspan="5">
-                        <tree>
+                        <list>
                             <field name="backend_id"/>
                             <field name="product_type"/>
                             <button name="sync_to_magento" string="To Magento" type="object"
@@ -25,7 +25,7 @@
                                     class="oe_highlight"/>
                             <button name="delete_from_magento" string="Delete from Magento" type="object"
                                     class="oe_highlight"/>
-                        </tree>
+                        </list>
                     </field>
                 </group>
             </page>
@@ -73,12 +73,12 @@
                         <page name="product_links" string="Products Links"
                               invisible="product_type != grouped">
                             <field name="product_links" nolabel="1" colspan="4">
-                                <tree editable="bottom">
+                                <list editable="bottom">
                                     <field name="name"/>
                                     <field name="default_code"/>
                                     <field name="backend_id"/>
                                     <field name="product_type"/>
-                                </tree>
+                                </list>
                             </field>
                         </page>
                         <page name="inventory" string="Inventory">
@@ -108,7 +108,7 @@
         <field name="name">magento.product.product.tree</field>
         <field name="model">magento.product.product</field>
         <field name="arch" type="xml">
-            <tree string="Magento Product">
+            <list string="Magento Product">
                 <field name="name"/>
                 <field name="default_code"/>
                 <field name="backend_id"/>
@@ -119,7 +119,7 @@
                         class="oe_highlight"/>
                 <button name="delete_from_magento" string="Delete from Magento" type="object"
                         class="oe_highlight"/>
-            </tree>
+            </list>
         </field>
     </record>
 
