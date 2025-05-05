@@ -112,7 +112,6 @@ class SaleImportRule(Component):
         :returns: True if the sale order should be imported
         :rtype: boolean
         """
-        breakpoint()
         payment_method = record['payment']['method']
         method = self.env['account.payment.mode'].search(
             [('name', '=', payment_method)],

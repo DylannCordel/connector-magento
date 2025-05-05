@@ -92,7 +92,7 @@ class MagentoBackend(models.Model):
     verify_ssl = fields.Boolean(
         string='Verify SSL certificate',
         default=True,
-        help="Only for Magento 2.0+")
+    )
     sale_prefix = fields.Char(
         string='Sale Prefix',
         help="A prefix put before the name of imported sales orders.\n"

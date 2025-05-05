@@ -1,17 +1,19 @@
 # Copyright 2017 Camptocamp SA
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
+from datetime import datetime
 import logging
 import socket
-import xmlrpc.client
-from datetime import datetime
 from urllib.parse import quote_plus
-
-import requests
+import xmlrpc.client
 
 from odoo.addons.component.core import AbstractComponent
-from odoo.addons.connector.exception import NetworkRetryableError, JobError, IDMissingInBackend
+from odoo.addons.connector.exception import IDMissingInBackend
+from odoo.addons.connector.exception import JobError
+from odoo.addons.connector.exception import NetworkRetryableError
 from odoo.addons.queue_job.exception import RetryableJobError
+
+import requests
 
 _logger = logging.getLogger(__name__)
 
@@ -111,6 +113,7 @@ class MagentoAPI(object):
                     self._location.location,
                     self._location.username,
                     self._location.password,
+                    verify_ssl=self._location.verify_ssl,
                     full_url=self._location.use_custom_api_path
                 )
                 api.__enter__()
