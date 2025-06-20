@@ -32,6 +32,7 @@ class ProductAttributeSetAdapter(Component):
     _name = 'magento.product.attribute.set.adapter'
     _inherit = 'magento.adapter'
     _apply_on = 'magento.product.attribute.set'
+    _magento_model = 'ol_catalog_product_attributeset'
 
     _magento2_model = 'products/attribute-sets'
     _magento2_search = 'products/attribute-sets/sets/list'
@@ -47,3 +48,5 @@ class ProductAttributeSetAdapter(Component):
             res = self._call('products/attribute-sets/%s/attributes' % id,
                             {'attributes':{}})
             return res
+        else: 
+            return []

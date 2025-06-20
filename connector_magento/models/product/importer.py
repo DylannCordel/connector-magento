@@ -115,7 +115,7 @@ class CatalogImageImporter(Component):
         # if len(images) > 1:
         #     images.pop(0)
             c = 0
-            for image_data in [ i for i in images if not i['disabled']]:
+            for image_data in [ i for i in images if 'disabled' not in i or  not i['disabled']]:
                 binary = self._get_binary_image(image_data)
                 if binary:
                     if image_data.get('label','') == '':
@@ -128,7 +128,7 @@ class CatalogImageImporter(Component):
                         'sequence': image_data.get('position', c),
                     })
                 c = c + 1
-            data['image_ids'] = [(6, 0, 0)] + [(0, 0, x) for x in image_ids]
+            #data['image_ids'] = [(6, 0, 0)] + [(0, 0, x) for x in image_ids]
         binding.with_context(connector_no_export=True).write(data)
 
 
@@ -233,6 +233,7 @@ class ProductImportMapper(Component):
 
     @mapping
     def type(self, record):
+        return
         if record['type_id'] in ('simple'):
             return {'detailed_type': 'product'}
         elif record['type_id'] in ('virtual', 'downloadable', 'giftcard','grouped'):
@@ -246,7 +247,10 @@ class ProductImportMapper(Component):
     @mapping
     def tax_class_id(self, record):
         # _logger.info("Get tax_class_id from %s", record)
-        tax_attribute = [a for a in record['custom_attributes'] if a['attribute_code'] == 'tax_class_id']
+        if 'custom_attribute' in record:
+            tax_attribute = [a for a in record['custom_attributes'] if a['attribute_code'] == 'tax_class_id']
+        else:
+            return {}
         if not tax_attribute:
             return {}
         binder = self.binder_for('magento.account.tax')
@@ -336,27 +340,28 @@ class ProductImportMapper(Component):
         value_ids = []
         changes = {}
         binding = self.options.get('binding')
-        for attribute in record['custom_attributes']:
-            mattribute = attribute_binder.to_internal(attribute['attribute_code'], unwrap=False,
-                                                      external_field='attribute_code')
-            if mattribute:
-                if mattribute.exclude:
-                    continue
-                if mattribute.field_id:
-                    data.update({mattribute.field_id.name: attribute['value']})
-                if mattribute.create_variant == 'no_variant' or not mattribute.is_user_defined:
-                    continue
-                mvalue = value_binder.to_internal("%s_%s" % (mattribute.attribute_id, str(attribute['value'])),
-                                                  unwrap=False)
-                if not mvalue:
-                    raise MappingError("The product attribute value %s in attribute %s is not imported." %
-                                       ("%s_%s" % (mattribute.attribute_id, str(attribute['value'])), mattribute.name))
-                # Also create an attribute.line.value entrie here
-                data['attribute_line_ids'].append((0, 0, {
-                    'attribute_id': mattribute.odoo_id.id,
-                    'value_ids': [(6, 0, [mvalue.odoo_id.id])],
-                }))
-                value_ids.append(mvalue.odoo_id.id)
+        if 'custom_attributes' in record:
+            for attribute in record['custom_attributes']:
+                mattribute = attribute_binder.to_internal(attribute['attribute_code'], unwrap=False,
+                                                        external_field='attribute_code')
+                if mattribute:
+                    if mattribute.exclude:
+                        continue
+                    if mattribute.field_id:
+                        data.update({mattribute.field_id.name: attribute['value']})
+                    if mattribute.create_variant == 'no_variant' or not mattribute.is_user_defined:
+                        continue
+                    mvalue = value_binder.to_internal("%s_%s" % (mattribute.attribute_id, str(attribute['value'])),
+                                                    unwrap=False)
+                    if not mvalue:
+                        raise MappingError("The product attribute value %s in attribute %s is not imported." %
+                                        ("%s_%s" % (mattribute.attribute_id, str(attribute['value'])), mattribute.name))
+                    # Also create an attribute.line.value entrie here
+                    data['attribute_line_ids'].append((0, 0, {
+                        'attribute_id': mattribute.odoo_id.id,
+                        'value_ids': [(6, 0, [mvalue.odoo_id.id])],
+                    }))
+                    value_ids.append(mvalue.odoo_id.id)
         if binding:
             # data['attribute_line_ids'] = [(5,0,0)] + data['attribute_line_ids']
             lines = data['attribute_line_ids']
@@ -431,8 +436,8 @@ class ProductImporter(Component):
         # import related categories
         self._import_dependency(record['attribute_set_id'],
                                 'magento.product.attribute.set')
-        # Check and import attributes and values if they do not exist
-        self._import_attributes(record)
+        # # Check and import attributes and values if they do not exist
+        # self._import_attributes(record)
         for mag_category_id in (record.get('category_ids') or record.get(
             'categories', [])):
             self._import_dependency(mag_category_id,
@@ -447,21 +452,22 @@ class ProductImporter(Component):
     def _import_attributes(self, record):
         attribute_binder = self.binder_for('magento.product.attribute')
         value_binder = self.binder_for('magento.product.attribute.value')
-        for attribute in record['custom_attributes']:
-            mattribute = attribute_binder.to_internal(attribute['attribute_code'], unwrap=False,
-                                                      external_field='attribute_code')
-            if not mattribute:
-                self._import_dependency(attribute['attribute_code'], 'magento.product.attribute')
+        if 'custom_attributes' in record:
+            for attribute in record['custom_attributes']:
                 mattribute = attribute_binder.to_internal(attribute['attribute_code'], unwrap=False,
-                                                          external_field='attribute_code')
-            if mattribute and mattribute.is_user_defined and mattribute.create_variant != 'no_variant':
-                mvalue = value_binder.to_internal("%s_%s" % (mattribute.attribute_id, str(attribute['value'])),
-                                                  unwrap=False)
-                if not mvalue:
-                    self._import_dependency(str(attribute['value']),
-                                            'magento.product.attribute.value',
-                                            attribute_code=attribute['attribute_code'],
-                                            magento_attribute=mattribute)
+                                                        external_field='attribute_code')
+                if not mattribute:
+                    self._import_dependency(attribute['attribute_code'], 'magento.product.attribute')
+                    mattribute = attribute_binder.to_internal(attribute['attribute_code'], unwrap=False,
+                                                            external_field='attribute_code')
+                if mattribute and mattribute.is_user_defined and mattribute.create_variant != 'no_variant':
+                    mvalue = value_binder.to_internal("%s_%s" % (mattribute.attribute_id, str(attribute['value'])),
+                                                    unwrap=False)
+                    if not mvalue:
+                        self._import_dependency(str(attribute['value']),
+                                                'magento.product.attribute.value',
+                                                attribute_code=attribute['attribute_code'],
+                                                magento_attribute=mattribute)
 
     def _validate_product_type(self, data):
         """ Check if the product type is in the selection (so we can

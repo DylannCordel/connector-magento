@@ -4,7 +4,7 @@
 
 from odoo.addons.component.core import AbstractComponent
 from odoo.addons.connector.components.mapper import mapping, only_create
-
+from datetime import datetime
 
 class MagentoImportMapper(AbstractComponent):
     _name = 'magento.import.mapper'
@@ -29,5 +29,11 @@ def normalize_datetime(field):
     def modifier(self, record, to_attr):
         if record[field] == '0000-00-00 00:00:00':
             return None
+        else:
+            try:
+                dt = datetime.fromisoformat(record[field])
+                return dt.strftime("%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                pass
         return record[field]
     return modifier
