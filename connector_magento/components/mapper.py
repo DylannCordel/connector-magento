@@ -2,23 +2,26 @@
 # © 2016 Sodexis
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from odoo.addons.component.core import AbstractComponent
-from odoo.addons.connector.components.mapper import mapping, only_create
 from datetime import datetime
 
+from odoo.addons.component.core import AbstractComponent
+from odoo.addons.connector.components.mapper import mapping
+
+
 class MagentoImportMapper(AbstractComponent):
-    _name = 'magento.import.mapper'
-    _inherit = ['base.magento.connector', 'base.import.mapper']
-    _usage = 'import.mapper'
+    _name = "magento.import.mapper"
+    _inherit = ["base.magento.connector", "base.import.mapper"]
+    _usage = "import.mapper"
 
     @mapping
     def data(self, record):
-        return {'data': record}
+        return {"data": record}
+
 
 class MagentoExportMapper(AbstractComponent):
-    _name = 'magento.export.mapper'
-    _inherit = ['base.magento.connector', 'base.export.mapper']
-    _usage = 'export.mapper'
+    _name = "magento.export.mapper"
+    _inherit = ["base.magento.connector", "base.export.mapper"]
+    _usage = "export.mapper"
 
 
 def normalize_datetime(field):
@@ -27,7 +30,7 @@ def normalize_datetime(field):
     OpenERP"""
 
     def modifier(self, record, to_attr):
-        if record[field] == '0000-00-00 00:00:00':
+        if record[field] == "0000-00-00 00:00:00":
             return None
         else:
             try:
@@ -36,4 +39,5 @@ def normalize_datetime(field):
             except ValueError:
                 pass
         return record[field]
+
     return modifier

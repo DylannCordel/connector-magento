@@ -47,7 +47,7 @@
         "views/product_attribute.xml",
         "wizards/magento_binding_backend_read.xml",
         "wizards/add_backend.xml",
-        "views/product_template_views.xml"
+        "views/product_template_views.xml",
     ],
     "installable": True,
     "application": False,
