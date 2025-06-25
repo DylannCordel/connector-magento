@@ -4,8 +4,13 @@
 
 from datetime import datetime
 
+from pytz import timezone
+
 from odoo.addons.component.core import AbstractComponent
 from odoo.addons.connector.components.mapper import mapping
+
+DATES_FORMATS = ["%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"]
+UTC = timezone("UTC")
 
 
 class MagentoImportMapper(AbstractComponent):
@@ -30,14 +35,20 @@ def normalize_datetime(field):
     OpenERP"""
 
     def modifier(self, record, to_attr):
-        if record[field] == "0000-00-00 00:00:00":
-            return None
-        else:
+        value = record[field]
+        if value and value != "0000-00-00 00:00:00":
+            dt = None
             try:
-                dt = datetime.fromisoformat(record[field])
-                return dt.strftime("%Y-%m-%d %H:%M:%S")
+                dt = datetime.fromisoformat(value).astimezone(UTC)
             except ValueError:
-                pass
-        return record[field]
-
+                for fmt in DATES_FORMATS:
+                    try:
+                        dt = datetime.strptime(value, fmt)
+                    except ValueError:
+                        pass
+                    else:
+                        break
+            if dt:
+                return dt.strftime("%Y-%m-%d %H:%M:%S")
+        return None
     return modifier

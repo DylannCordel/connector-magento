@@ -445,8 +445,8 @@ class AddressImportMapper(Component):
     def direct(self):
         fields = super().direct[:]
         fields += [
-            ("created_at", "created_at"),
-            ("updated_at", "updated_at"),
+            (normalize_datetime("created_at"), "created_at"),
+            (normalize_datetime("updated_at"), "updated_at"),
             ("company", "company"),
         ]
         return fields
