@@ -120,7 +120,10 @@ class SaleImportRule(Component):
         :rtype: boolean
         """
         payment_method = record["payment"]["method"]
-        method = self.env["account.payment.mode"].search(
+        # account .payment.mode a été remplacé par les modules de bank-payment-alternatives
+        # FIXME Je pense qu'il faut taper dans payment.method
+        # self.env["payment.method"].search([["name", "=", record_method]], limit=1)
+        method = self.env["TODOaccount .payment.mode"].search(
             [("name", "=", payment_method)],
             limit=1,
         )
@@ -307,7 +310,10 @@ class SaleOrderImportMapper(Component):
     @mapping
     def payment(self, record):
         record_method = record["payment"]["method"]
-        method = self.env["account.payment.mode"].search(
+        # account .payment.mode a été remplacé par les modules de bank-payment-alternatives
+        # FIXME Je pense qu'il faut taper dans payment.method
+        # self.env["payment.method"].search([["name", "=", record_method]], limit=1)
+        method = self.env["TODOaccount .payment.mode"].search(
             [["name", "=", record_method]],
             limit=1,
         )

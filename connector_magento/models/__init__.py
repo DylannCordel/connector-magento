@@ -1,7 +1,6 @@
 from . import magento_binding  # should be loaded first for inheritance
 
 from . import account_invoice
-from . import account_payment_mode
 from . import delivery
 from . import magento_backend
 from . import magento_store

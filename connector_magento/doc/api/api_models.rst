@@ -88,15 +88,6 @@ Queue Job
 ..   :members:
    :undoc-members:
 
-Payment Mode
-============
-
-.. automodule:: odoo.addons.connector_magento.models.account_payment_mode.common
-   :show-inheritance:
-   :private-members:
-..   :members:
-   :undoc-members:
-
 Delivery Method
 ===============
 
