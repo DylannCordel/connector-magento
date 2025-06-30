@@ -249,8 +249,8 @@ class ProductImportMapper(Component):
     @mapping
     def price(self, record):
         return {
-            "standard_price": float(record.get("cost", 0.0)),
-            "list_price": float(record.get("price", 0.0)),
+            "standard_price": float(record.get("cost", 0.0) or 0.0),
+            "list_price": float(record.get("price", 0.0) or 0.0),
         }
 
     @mapping
