@@ -255,6 +255,7 @@ class ProductImportMapper(Component):
 
     @mapping
     def type(self, record):
+        # FIXME : is is consu or product ?
         if record["type_id"] in ("simple"):
             return {"type": "consu"}
         elif record["type_id"] in ("virtual", "downloadable", "giftcard", "grouped"):
