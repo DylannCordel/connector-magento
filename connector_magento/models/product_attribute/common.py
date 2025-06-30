@@ -143,6 +143,7 @@ class ProductAttributeAdapter(Component):
     _inherit = "magento.adapter"
     _apply_on = "magento.product.attribute"
 
+    # FIXME : model magento 1.7
     _magento2_model = "products/attributes"
     _magento2_search = "products/attributes"
     _magento2_key = "attribute_id"
