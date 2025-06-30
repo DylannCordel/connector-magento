@@ -197,9 +197,9 @@ class ProductCategoryAdapter(Component):
         if self.collection.version == "1.7":
             if parent_id:
                 parent_id = int(parent_id)
-                tree = self._call(
-                    "%s.tree" % self._magento_model, [parent_id, storeview_id]
-                )
+            tree = self._call(
+                "%s.tree" % self._magento_model, [parent_id, storeview_id]
+            )
             return filter_ids(tree)
         raise NotImplementedError  # TODO
 
