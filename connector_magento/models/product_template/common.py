@@ -276,7 +276,8 @@ class ProductTemplate(models.Model):
             # Else avoid creating the variants
             me = self.with_context(create_product_product=True)
             instances += super(ProductTemplate, me).create([vals])
-        return instances
+        ids = [i.id for i in instances]
+        return self.__class__(self.env, ids, ids)
 
     def _create_variant_ids(self):
         for rec in self:
