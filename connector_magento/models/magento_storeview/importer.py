@@ -29,6 +29,7 @@ class MagentoStoreviewImportMapper(Component):
 
     @mapping
     def lang_id(self, record):
+        # FIXME : everything is imported as default locale in 1.7+
         if self.collection.version == "2.0":
             lang = self.env["res.lang"].search([("code", "=", record["locale"])])
             return {"lang_id": lang.id}

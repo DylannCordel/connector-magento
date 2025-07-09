@@ -123,6 +123,7 @@ class SaleImportRule(Component):
         # account .payment.mode a été remplacé par les modules de bank-payment-alternatives
         # FIXME Je pense qu'il faut taper dans payment.method
         # self.env["payment.method"].search([["name", "=", record_method]], limit=1)
+        # FIXME : sans doute plutot account.payment.method
         method = self.env["TODOaccount .payment.mode"].search(
             [("name", "=", payment_method)],
             limit=1,
