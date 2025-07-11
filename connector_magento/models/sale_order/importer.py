@@ -2,7 +2,6 @@
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html)
 
 import logging
-from datetime import datetime, timedelta
 from re import search as re_search
 
 from odoo import _
@@ -93,23 +92,24 @@ class SaleImportRule(Component):
         "never": _rule_never,
     }
 
-    def _rule_global(self, record, method) -> bool:
-        """Rule always executed, whichever is the selected rule"""
-        # the order has been canceled since the job has been created
-        order_id = record["increment_id"]
-        if record["state"] == "canceled":
-            raise JobError("Order %s canceled" % order_id)
-        max_days = method.days_before_cancel
-        if max_days:
-            fmt = "%Y-%m-%d %H:%M:%S"
-            order_date = datetime.strptime(record["created_at"], fmt)
-            if order_date + timedelta(days=max_days) < datetime.now():
-                raise JobError(
-                    "Import of the order %s canceled "
-                    "because it has not been paid since %d "
-                    "days" % (order_id, max_days)
-                )
-        return True
+    # def _rule_global(self, record, method) -> bool:
+    #    """Rule always executed, whichever is the selected rule"""
+    #    # the order has been canceled since the job has been created
+    #    order_id = record["increment_id"]
+    #    # on veut quand meme importer les canceled, le statut sera repercute sur odoo
+    #    # if record["state"] == "canceled":
+    #    #     raise JobError("Order %s canceled" % order_id)
+    #    # max_days = method.days_before_cancel
+    #    # if max_days:
+    #    #    fmt = "%Y-%m-%d %H:%M:%S"
+    #    #    order_date = datetime.strptime(record["created_at"], fmt)
+    #    #    if order_date + timedelta(days=max_days) < datetime.now():
+    #    #        raise JobError(
+    #    #            "Import of the order %s canceled "
+    #    #            "because it has not been paid since %d "
+    #    #            "days" % (order_id, max_days)
+    #    #        )
+    #    return True
 
     def check(self, record) -> bool:
         """Check whether the current sale order should be imported
@@ -123,9 +123,8 @@ class SaleImportRule(Component):
         # account .payment.mode a été remplacé par les modules de bank-payment-alternatives
         # FIXME Je pense qu'il faut taper dans payment.method
         # self.env["payment.method"].search([["name", "=", record_method]], limit=1)
-        # FIXME : sans doute plutot account.payment.method
-        method = self.env["TODOaccount .payment.mode"].search(
-            [("name", "=", payment_method)],
+        method = self.env["account.payment.method"].search(
+            [("code", "=", payment_method)],
             limit=1,
         )
         if not method:
@@ -138,9 +137,11 @@ class SaleImportRule(Component):
                 "- Eventually link the Payment Mode to an existing Workflow "
                 "Process or create a new one." % (payment_method, payment_method)
             )
-        return self._rule_global(record, method) and self._rules[method.import_rule](
-            self, record, method
-        )
+        return True
+        # self._rule_global(record, method)
+        # and self._rules[method.import_rule](
+        #    self, record, method
+        # )
 
 
 class SaleOrderImportMapper(Component):
@@ -270,6 +271,7 @@ class SaleOrderImportMapper(Component):
                 "partner_id": self.options.partner_id,
                 "partner_invoice_id": self.options.partner_invoice_id,
                 "partner_shipping_id": self.options.partner_shipping_id,
+                "company_id": self.env["res.company"].search([], limit=1).id,
             }
         )
         onchange = self.component(usage="ecommerce.onchange.manager.sale.order")
@@ -293,37 +295,51 @@ class SaleOrderImportMapper(Component):
         )
         return {"partner_id": partner.id}
 
-    #     @mapping
-    #     def pricelist_id(self, record):
-    #         """ Assign a pricelist in the correct currency if necessary. """
-    #         currency = record['order_currency_code']
-    #         partner = self.binder_for('magento.res.partner').to_internal(
-    #             record['customer_id'], unwrap=True)
-    #         if partner.property_product_pricelist.currency_id.name != currency:
-    #             pricelist = self.env['product.pricelist'].search(
-    #                 [('currency_id.name', '=', currency)], limit=1)
-    #             if not pricelist:
-    #                 raise FailedJobError(
-    #                     "Missing pricelist for this order's currency: %s" %
-    #                     currency)
-    #             return {'pricelist_id': pricelist.id}
-
     @mapping
-    def payment(self, record):
-        record_method = record["payment"]["method"]
-        # account .payment.mode a été remplacé par les modules de bank-payment-alternatives
-        # FIXME Je pense qu'il faut taper dans payment.method
-        # self.env["payment.method"].search([["name", "=", record_method]], limit=1)
-        method = self.env["TODOaccount .payment.mode"].search(
-            [["name", "=", record_method]],
-            limit=1,
-        )
-        assert method, (
-            "method %s should exist because the import fails "
-            "in SaleOrderImporter._before_import when it is "
-            " missing" % record["payment"]["method"]
-        )
-        return {"payment_mode_id": method.id}
+    def state(self, record):
+        if record["state"] == "complete":
+            return {"state": "sale"}
+        if record["state"] == "canceled":
+            return {"state": "cancel"}
+        if record["state"] == "new":
+            return {"state": "draft"}
+        if record["state"] == "closed":
+            return {"state": "cancel"}
+        return {"state": "sale"}
+
+    # pricelist_id n'existe plus
+    # @mapping
+    # def pricelist_id(self, record):
+    #     """ Assign a pricelist in the correct currency if necessary. """
+    #     currency = record['order_currency_code']
+    #     partner = self.binder_for('magento.res.partner').to_internal(
+    #         record['customer_id'], unwrap=True)
+    #     if partner.property_product_pricelist.currency_id.name != currency:
+    #         pricelist = self.env['product.pricelist'].search(
+    #             [('currency_id.name', '=', currency)], limit=1)
+    #         if not pricelist:
+    #             raise FailedJobError(
+    #                 "Missing pricelist for this order's currency: %s" %
+    #                 currency)
+    #         return {'pricelist_id': pricelist.id}
+
+    # payment_mode_id n'existe plus
+    # @mapping
+    # def payment(self, record):
+    #     payment_method = record["payment"]["method"]
+    #     # account .payment.mode a été remplacé par les modules de bank-payment-alternatives
+    #     # FIXME Je pense qu'il faut taper dans payment.method
+    #     # self.env["payment.method"].search([["name", "=", record_method]], limit=1)
+    #     method = self.env["account.payment.method"].search(
+    #         [("code", "=", payment_method)],
+    #         limit=1,
+    #     )
+    #     assert method, (
+    #         "method %s should exist because the import fails "
+    #         "in SaleOrderImporter._before_import when it is "
+    #         " missing" % record["payment"]["method"]
+    #     )
+    #     return {"payment_mode_id": method.id}
 
     @mapping
     def shipping_method(self, record):
@@ -386,6 +402,16 @@ class SaleOrderImportMapper(Component):
         """Do not assign to a Salesperson otherwise sales orders are hidden
         for the salespersons (access rules)"""
         return {"user_id": False}
+
+    @mapping
+    def currency_id(self, record):
+        code = record.get("order_currency_code")
+        currency = self.env["res.currency"].search(
+            [("name", "=", code)], limit=1
+        )  # sale.order.currency_id ? res.currency ?
+        if not currency:
+            raise ValueError(f"Currency '{code}' not found in Odoo")
+        return {"currency_id": currency}
 
 
 class SaleOrderImporter(Component):
@@ -516,6 +542,7 @@ class SaleOrderImporter(Component):
             current_binding = parent_binding
 
     def _create(self, data):
+        # breakpoint()
         binding = super()._create(data)
         if binding.fiscal_position_id:
             binding.odoo_id._recompute_taxes()
@@ -717,6 +744,7 @@ class SaleOrderImporter(Component):
             partner_id=self.partner_id,
             partner_invoice_id=self.partner_invoice_id,
             partner_shipping_id=self.partner_shipping_id,
+            order_currency_code=self.magento_record["order_currency_code"],
             storeview=storeview,
             **kwargs,
         )
@@ -759,7 +787,16 @@ class SaleOrderLineImportMapper(Component):
         ("qty_ordered", "product_qty"),
         ("name", "name"),
         ("item_id", "external_id"),
+        ("order_currency_code", "currency_id"),
     ]
+
+    @mapping
+    def currency_id(self, record):
+        code = self._options.get("order_currency_code")
+        currency = self.env["res.currency"].search([("name", "=", code)], limit=1)
+        if not currency:
+            raise ValueError(f"Currency '{code}' not found in Odoo")
+        return {"currency_id": currency}
 
     @mapping
     def discount_amount(self, record):
