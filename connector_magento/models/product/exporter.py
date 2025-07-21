@@ -119,6 +119,8 @@ class ProductProductExporter(Component):
     def _create(self, data, **kwargs):
         """Create the Magento record"""
         # special check on data before export
+        breakpoint()
+        data = [data.pop("typeId"), data.pop("attributeSetId"), data.pop("sku"), data]
         res = super()._create(data, **kwargs)
         self.binding.with_context(no_connector_export=True).magento_internal_id = res
         return res
@@ -369,40 +371,61 @@ class ProductProductExportMapper(Component):
             return {"product_links": data}
         return {}
 
+    def _get_record_images(self, record):
+        mime = magic.Magic(mime=True)
+        images = []
+        image_count = 0
+        if record.image_1920:
+            mimetype = mime.from_buffer(base64.b64decode(record.image_1920))
+            extension = self.mime_to_extension.get(mimetype, "jpg")
+            name = record.name or record.default_code
+            filename = f'{name}_{record.id}_{image_count}.{extension}'
+            images.append({
+                "name": name,
+                "mimetype": mimetype,
+                "b64": record.image_1920,
+                "filename": filename
+            })
+            image_count += 1
+        for image in getattr(record, "product_variant_image_ids", None) or []:
+            if not image.image_1920:
+                continue
+            mimetype = mime.from_buffer(base64.b64decode(image.image_1920))
+            extension = self.mime_to_extension.get(mimetype, "jpg")
+            name = image.name or record.name or record.default_code
+            filename = f'{name}_{record.id}_{image_count}.{extension}'
+            images.append({
+                "name": name,
+                "mimetype": mimetype,
+                "b64": image.image_1920,
+                "filename": filename
+            })
+            image_count += 1
+        return images
+        
     @mapping
     def media_gallery_entries(self, record):
-        if record.image_ids:
-            media_gallery_entries = []
-            mime = magic.Magic(mime=True)
-            image_count = 0
-            for image in record.image_ids:
-                if not image.image_1920:
-                    continue
-                mimetype = mime.from_buffer(base64.b64decode(image.image_1920))
-                extension = self.mime_to_extension.get(mimetype, "jpg")
-                filename = f"{slugify(image.name or record.default_code)}_{record.id}_{image_count}.{extension}"
-                image_count += 1
-                media_gallery_entries.append(
-                    {
-                        "media_type": "image",
-                        "label": image.name or record.name,
-                        "position": image_count,
-                        "disabled": False,
-                        "types": [
-                            "image",
-                            "small_image",
-                            "thumbnail",
-                        ],
-                        # "file": filename,
-                        "content": {
-                            "base64_encoded_data": image.image_1920,
-                            "type": mimetype,
-                            "name": filename,
-                        },
-                    }
-                )
-            return {"media_gallery_entries": media_gallery_entries}
-        return {}
+        entries = [
+            {
+                "media_type": "image",
+                "label": image["name"],
+                "position": offset,
+                "disabled": False,
+                "types": [
+                    "image",
+                    "small_image",
+                    "thumbnail",
+                ],
+                "content": {
+                    "base64_encoded_data": image["b64"],
+                    "type": image["mimetype"],
+                    "name": image["filename"],
+                },
+            }
+            for offset, image in enumerate(self._get_record_images(record))
+        ]
+        # product_variant_image_ids could be added by website_sale
+        return {"media_gallery_entries": entries} if entries else {}
 
     def get_website_ids(self, record):
         if record.website_ids:

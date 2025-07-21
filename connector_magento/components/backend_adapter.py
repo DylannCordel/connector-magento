@@ -421,7 +421,9 @@ class GenericAdapter(AbstractComponent):
             if isinstance(new_object, dict):
                 data.update(new_object)
             return self._get_id_from_create(new_object, data)
-        return self._call("%s.create" % self._magento_model, [data])
+        if not isinstance(data, list):
+            data = [data]
+        return self._call("%s.create" % self._magento_model, data)
 
     def _get_id_from_create(self, result, data=None):
         return result["id"]
