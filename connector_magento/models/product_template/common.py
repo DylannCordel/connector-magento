@@ -331,6 +331,14 @@ class ProductTemplateAdapter(Component):
         if self.work.magento_api._location.version == "2.0":
             return super().search(filters=filters)
         # TODO add a search entry point on the Magento API
+        if self.collection.version == "1.7":
+            # TODO add a search entry point on the Magento API
+            return [
+                int(row["product_id"])
+                for row in self._call(
+                    "%s.list" % self._magento_model, [filters] if filters else [{}]
+                )
+            ]
         raise NotImplementedError
 
     def get_images(self, dummy, storeview_id=None, data=None):
@@ -361,7 +369,8 @@ class ProductTemplateAdapter(Component):
                 "configurable-products/%s/children" % (self.escape(sku)), None
             )
             return res
-        raise NotImplementedError
+        # raise NotImplementedError
+        return []
 
     def write(self, id, data, storeview=None, **kwargs):
         """Update records on the external system"""
@@ -397,8 +406,8 @@ class ProductTemplateAdapter(Component):
         :rtype: dict
         """
         # pylint: disable=method-required-super
-        if self.collection.version == "1.7":
-            raise NotImplementedError
+        # if self.collection.version == "1.7":
+        #    raise NotImplementedError
         res = super().read(external_id, attributes=attributes, storeview=storeview)
         if res:
             for attr in res.get("custom_attributes", []):
