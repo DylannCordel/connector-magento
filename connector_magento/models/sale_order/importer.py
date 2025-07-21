@@ -302,9 +302,11 @@ class SaleOrderImportMapper(Component):
         if record["state"] == "canceled":
             return {"state": "cancel"}
         if record["state"] == "new":
-            return {"state": "draft"}
+            return {"state": "sale"}
         if record["state"] == "closed":
             return {"state": "cancel"}
+        if record["state"] == "processing":
+            return {"state": "sale"}
         return {"state": "sale"}
 
     # pricelist_id n'existe plus
