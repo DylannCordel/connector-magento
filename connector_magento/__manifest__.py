@@ -1,7 +1,6 @@
 # © 2013 Guewen Baconnier,Camptocamp SA,Akretion
 # © 2016 Sodexis
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
-
 {
     "name": "Magento Connector",
     "version": "18.0.1.0.0",

@@ -33,7 +33,6 @@ class MagentoProductTemplate(models.Model):
     @api.model
     def product_type_get(self):
         return [
-            ("simple", "Simple Product"),
             ("configurable", "Configurable Product"),
             ("bundle", "Bundle Product"),
         ]

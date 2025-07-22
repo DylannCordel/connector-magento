@@ -75,7 +75,7 @@ class ProductAttributeExporter(Component):
                         }
                     )
 
-    def _export_dependencies(self):
+    def _after_export(self):
         # Here we do export the attribute values
         for value in self.binding.magento_attribute_value_ids:
             self._export_dependency(
@@ -94,16 +94,16 @@ class ProductAttributeExporter(Component):
         # special check on data before export
         self._validate_create_data(data)
         result = self.backend_adapter.create(data, binding=self.binding)
-        self._update_attribute_with_result(result)
+        self._update_attribute_with_result(data)
         return result
 
-    def _update(self, data, storeview_code=None):
-        if data.get("attribute_group_id"):  # we don't want to update this
-            del data["attribute_group_id"]
-        if data.get("attribute_set_id"):  # we don't want to update this
-            del data["attribute_set_id"]
-        result = super()._update(data, storeview=storeview_code)
-        self._update_attribute_with_result(result)
+    def _update(self, data, storeview_code=None, **kwargs):
+        if data.get('attribute_group_id'):  # we don't want to update this
+            del data['attribute_group_id']
+        if data.get('attribute_set_id'):  # we don't want to update this
+            del data['attribute_set_id']
+        result = super(ProductAttributeExporter, self)._update(data, storeview=storeview_code, **kwargs)
+        self._update_attribute_with_result(data)
         return result
 
     """
