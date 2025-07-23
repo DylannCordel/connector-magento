@@ -35,7 +35,7 @@ def normalize_datetime(field):
     OpenERP"""
 
     def modifier(self, record, to_attr):
-        value = record[field]
+        value = record.get(field, None)
         if value and value != "0000-00-00 00:00:00":
             dt = None
             try:
