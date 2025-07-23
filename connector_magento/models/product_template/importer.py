@@ -226,7 +226,7 @@ class ProductTemplateImporter(Component):
             binding = self.env["magento.product.template"].search(
                 [
                     ("backend_id", "=", self.backend_record.id),
-                    ("magento_id", "=", self.magento_record["id"]),
+                    ("magento_id", "=", self.magento_record["product_id"]),
                 ]
             )
             # if we found binding here - then the update will also update the external_id on the binding record
@@ -270,6 +270,8 @@ class ProductTemplateImporter(Component):
                 )
 
     def _import_dependencies(self, **kwargs):
+        if self.collection.version == "1.7":
+            return
         record = self.magento_record
         # Import attribute deps
         for attribute in record.get("custom_attributes"):
@@ -343,7 +345,15 @@ class ProductTemplateImportMapper(Component):
         """
         attribute_binder = self.binder_for("magento.product.attribute")
         line_binder = self.binder_for("magento.product.template.attribute.line")
-        product_options = record["extension_attributes"]["configurable_product_options"]
+        if (
+            "extension_attributes" in record
+            and "configurable_product_options" in record["extension_attributes"]
+        ):
+            product_options = record["extension_attributes"][
+                "configurable_product_options"
+            ]
+        else:
+            product_options = []
         linemapper = self.component(
             usage="import.mapper", model_name="magento.product.template.attribute.line"
         )
@@ -441,10 +451,14 @@ class ProductTemplateImportMapper(Component):
 
     @mapping
     def type(self, record):
+        if self.collection.version == "1.7":
+            return {}
         return {"detailed_type": "product"}
 
     @mapping
     def attributes_no_variant(self, record):
+        if self.collection.version == "1.7":
+            return {}
         attribute_binder = self.binder_for("magento.product.attribute")
         value_binder = self.binder_for("magento.product.attribute.value")
         data = {"attribute_line_ids": []}
