@@ -493,8 +493,11 @@ class ProductImporter(Component):
     _name = "magento.product.product.importer"
     _inherit = "magento.importer"
     _apply_on = ["magento.product.product"]
-    _magento_id_field = "sku"
 
+    @property
+    def _magento_id_field(self):
+        return "sku" if self.collection.version == "1.7" else "product_id"
+    
     def _import_bundle_dependencies(self):
         """Import the dependencies for a Bundle"""
         if self.collection.version == "1.7":
