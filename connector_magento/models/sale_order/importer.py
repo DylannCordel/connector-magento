@@ -92,24 +92,24 @@ class SaleImportRule(Component):
         "never": _rule_never,
     }
 
-    # def _rule_global(self, record, method) -> bool:
-    #    """Rule always executed, whichever is the selected rule"""
-    #    # the order has been canceled since the job has been created
-    #    order_id = record["increment_id"]
-    #    # on veut quand meme importer les canceled, le statut sera repercute sur odoo
-    #    # if record["state"] == "canceled":
-    #    #     raise JobError("Order %s canceled" % order_id)
-    #    # max_days = method.days_before_cancel
-    #    # if max_days:
-    #    #    fmt = "%Y-%m-%d %H:%M:%S"
-    #    #    order_date = datetime.strptime(record["created_at"], fmt)
-    #    #    if order_date + timedelta(days=max_days) < datetime.now():
-    #    #        raise JobError(
-    #    #            "Import of the order %s canceled "
-    #    #            "because it has not been paid since %d "
-    #    #            "days" % (order_id, max_days)
-    #    #        )
-    #    return True
+    def _rule_global(self, record, method) -> bool:
+        """Rule always executed, whichever is the selected rule"""
+        # we want to import canceled orders
+        # the order has been canceled since the job has been created
+        # order_id = record["increment_id"]
+        # if record["state"] == "canceled":
+        #     raise JobError("Order %s canceled" % order_id)
+        max_days = getattr(method, "days_before_cancel", None)
+        if max_days:
+            fmt = "%Y-%m-%d %H:%M:%S"
+            order_date = datetime.strptime(record["created_at"], fmt)
+            if order_date + timedelta(days=max_days) < datetime.now():
+                raise JobError(
+                    "Import of the order %s canceled "
+                    "because it has not been paid since %d "
+                    "days" % (order_id, max_days)
+                )
+        return True
 
     def check(self, record) -> bool:
         """Check whether the current sale order should be imported
@@ -137,11 +137,12 @@ class SaleImportRule(Component):
                 "- Eventually link the Payment Mode to an existing Workflow "
                 "Process or create a new one." % (payment_method, payment_method)
             )
-        return True
-        # self._rule_global(record, method)
-        # and self._rules[method.import_rule](
-        #    self, record, method
-        # )
+        # FIXME ?: 'account.payment.method' object has no attribute 'import_rule'
+        return (
+            self._rule_global(record, method)
+            and hasattr(method, "import_rule")
+            and self._rules[method.import_rule](self, record, method)
+        )
 
 
 class SaleOrderImportMapper(Component):
@@ -309,39 +310,43 @@ class SaleOrderImportMapper(Component):
             return {"state": "sale"}
         return {"state": "sale"}
 
-    # pricelist_id n'existe plus
-    # @mapping
-    # def pricelist_id(self, record):
-    #     """ Assign a pricelist in the correct currency if necessary. """
-    #     currency = record['order_currency_code']
-    #     partner = self.binder_for('magento.res.partner').to_internal(
-    #         record['customer_id'], unwrap=True)
-    #     if partner.property_product_pricelist.currency_id.name != currency:
-    #         pricelist = self.env['product.pricelist'].search(
-    #             [('currency_id.name', '=', currency)], limit=1)
-    #         if not pricelist:
-    #             raise FailedJobError(
-    #                 "Missing pricelist for this order's currency: %s" %
-    #                 currency)
-    #         return {'pricelist_id': pricelist.id}
+    @mapping
+    def pricelist_id(self, record):
+        """Assign a pricelist in the correct currency if necessary."""
+        if self.collection.version == "1.7":
+            return {}
+        currency = record["order_currency_code"]
+        partner = self.binder_for("magento.res.partner").to_internal(
+            record["customer_id"], unwrap=True
+        )
+        if partner.property_product_pricelist.currency_id.name != currency:
+            pricelist = self.env["product.pricelist"].search(
+                [("currency_id.name", "=", currency)], limit=1
+            )
+            if not pricelist:
+                raise FailedJobError(
+                    "Missing pricelist for this order's currency: %s" % currency
+                )
+            return {"pricelist_id": pricelist.id}
 
-    # payment_mode_id n'existe plus
-    # @mapping
-    # def payment(self, record):
-    #     payment_method = record["payment"]["method"]
-    #     # account .payment.mode a été remplacé par les modules de bank-payment-alternatives
-    #     # FIXME Je pense qu'il faut taper dans payment.method
-    #     # self.env["payment.method"].search([["name", "=", record_method]], limit=1)
-    #     method = self.env["account.payment.method"].search(
-    #         [("code", "=", payment_method)],
-    #         limit=1,
-    #     )
-    #     assert method, (
-    #         "method %s should exist because the import fails "
-    #         "in SaleOrderImporter._before_import when it is "
-    #         " missing" % record["payment"]["method"]
-    #     )
-    #     return {"payment_mode_id": method.id}
+    @mapping
+    def payment(self, record):
+        if self.collection.version == "1.7":
+            return {}
+        payment_method = record["payment"]["method"]
+        # account .payment.mode a été remplacé par les modules de bank-payment-alternatives
+        # FIXME Je pense qu'il faut taper dans payment.method
+        # self.env["payment.method"].search([["name", "=", record_method]], limit=1)
+        method = self.env["account.payment.method"].search(
+            [("code", "=", payment_method)],
+            limit=1,
+        )
+        assert method, (
+            "method %s should exist because the import fails "
+            "in SaleOrderImporter._before_import when it is "
+            " missing" % record["payment"]["method"]
+        )
+        return {"payment_mode_id": method.id}
 
     @mapping
     def shipping_method(self, record):
@@ -544,7 +549,6 @@ class SaleOrderImporter(Component):
             current_binding = parent_binding
 
     def _create(self, data):
-        # breakpoint()
         binding = super()._create(data)
         if binding.fiscal_position_id:
             binding.odoo_id._recompute_taxes()
