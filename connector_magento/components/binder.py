@@ -29,7 +29,6 @@ class MagentoModelBinder(Component):
         "magento.address",
         "magento.res.partner.category",
         "magento.product.category",
-        "magento.product.product",
         "magento.stock.picking",
         "magento.sale.order",
         "magento.sale.order.line",
@@ -84,3 +83,22 @@ class MagentoModelBinder(Component):
             bindings = bindings[self._odoo_field]
         bindings = bindings.with_context(**context)
         return bindings
+
+
+class MagentoProductBinder(Component):
+    """
+    See MagentoModelBinder + define a different external_field 
+    if we use Magento 1.x or 2.x
+    """
+
+    _name = "magento.binder.product"
+    _inherit = ["magento.binder", ]
+    _apply_on = [
+        "magento.product.product",
+    ]
+    
+    @property
+    def _external_field(self):
+        if self.collection.version == "1.7":
+            return "magento_internal_id"
+        return "external_id"

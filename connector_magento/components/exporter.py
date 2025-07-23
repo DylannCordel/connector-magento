@@ -83,7 +83,6 @@ class MagentoBaseExporter(AbstractComponent):
         :param binding: binding record to export
         """
         self.binding = binding
-
         self.external_id = self.binder.to_external(self.binding)
         try:
             should_import = self._should_import()

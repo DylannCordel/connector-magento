@@ -7,6 +7,8 @@ import logging
 import magic
 from slugify import slugify
 
+from odoo.tools.translate import _
+
 from odoo.addons.component.core import Component
 from odoo.addons.connector.components.mapper import mapping
 
@@ -17,48 +19,6 @@ class ProductProductExporter(Component):
     _name = "magento.product.product.exporter"
     _inherit = "magento.exporter"
     _apply_on = ["magento.product.product"]
-
-    def _run(self, fields=None, **kwargs):
-        """Flow of the synchronization, implemented in inherited classes"""
-        assert self.binding
-
-        if not self.external_id:
-            fields = None  # should be created with all the fields
-
-        if self._has_to_skip():
-            return
-
-        # export the missing linked resources
-        self._export_dependencies()
-
-        # prevent other jobs to export the same record
-        # will be released on commit (or rollback)
-        self._lock()
-
-        map_record = self._map_data()
-
-        # _logger.info("External ID is: %s", self.external_id)
-        if self.external_id and self.binding.magento_internal_id:
-            _logger.info("External ID is: %s", self.external_id)
-            record = self._update_data(map_record, fields=fields)
-            if not record:
-                return _("Nothing to export.")
-            data = self._update(record, **kwargs)
-            if data:
-                self._update_binding_record_after_write(data)
-        else:
-            record = self._create_data(map_record, fields=fields)
-            if not record:
-                return _("Nothing to export.")
-            data = self._create(record)
-            if not data:
-                raise UserWarning(
-                    "Create did not returned anything on %s with binding id %s",
-                    self._name,
-                    self.binding.id,
-                )
-            self._update_binding_record_after_create(record)
-        return _("Record exported with ID %s on Magento.") % self.external_id
 
     def _sku_inuse(self, sku):
         search_count = self.env["magento.product.template"].search_count(
@@ -108,7 +68,6 @@ class ProductProductExporter(Component):
                 sku = "%s-%s" % (original_sku[0 : (63 - len(str(i)))], i)
                 i += 1
                 _logger.info("Try next sku: %s", sku)
-            self.binding.with_context(connector_no_export=True).external_id = sku
             # TODO: Add backend option to enable / disable this !
             """
             if not self.binding.default_code:
@@ -116,15 +75,21 @@ class ProductProductExporter(Component):
             """
         return super()._create_data(map_record, **kwargs)
 
-    def _create(self, data, **kwargs):
+    def _create(self, data):
         """Create the Magento record"""
         # special check on data before export
-        breakpoint()
-        data = [data.pop("typeId"), data.pop("attributeSetId"), data.pop("sku"), data]
-        res = super()._create(data, **kwargs)
-        self.binding.with_context(no_connector_export=True).magento_internal_id = res
-        return res
-
+        soap_data = [data["typeId"], data["attribute_set_id"], data["sku"], data]
+        external_id = super()._create(soap_data)
+        if external_id:
+            self._update_binding_record_after_create(data)
+        return external_id
+        
+    def _update(self, data):
+        updated = super()._update(data)
+        if updated:
+            self._update_binding_record_after_write(data)
+        return updated
+        
     # def _should_import(self):
     #     """ Before the export, compare the update date
     #     in Magento and the last sync date in Odoo,
@@ -172,7 +137,6 @@ class ProductProductExporter(Component):
             # )
             # _logger.info("Data: %s", data)
             # stock_importer.run(data['extension_attributes']['stock_item'])
-            self.external_id = data["sku"]
             return False
         # If not odoo_first - then make a full update
         # Do use the importer to update the binding
@@ -204,7 +168,6 @@ class ProductProductExporter(Component):
             #     model_name='magento.stock.item'
             # )
             # stock_importer.run(data['extension_attributes']['stock_item'])
-            self.external_id = data["sku"]
             return False
         # Do use the importer to update the binding
         importer = self.component(
@@ -212,7 +175,6 @@ class ProductProductExporter(Component):
         )
         _logger.info("Do update record with: %s", data)
         importer.run(data, force=True, binding=self.binding.sudo())
-        self.external_id = data["sku"]
 
     def _delay_import(self):
         """Schedule an import/export of the record.
@@ -311,7 +273,7 @@ class ProductProductExportMapper(Component):
     _apply_on = ["magento.product.product"]
 
     direct = [
-        ("external_id", "sku"),
+        ("code", "sku"),
         ("product_type", "typeId"),
         ("magento_visibility", "visibility"),
     ]
@@ -483,7 +445,7 @@ class ProductProductExportMapper(Component):
             val = record.attribute_set_id.external_id
         else:
             val = record.backend_id.default_attribute_set_id.external_id
-        return {"attributeSetId": val}
+        return {"attribute_set_id": val}
 
     @mapping
     def get_custom_attributes(self, record):

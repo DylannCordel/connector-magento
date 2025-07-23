@@ -206,7 +206,7 @@ class ProductImportMapper(Component):
     # TODO :     categ, special_price => minimal_price
     direct = [
         ("name", "name"),
-        ("id", "magento_internal_id"),
+        ("product_id", "magento_internal_id"),
         ("description", "description"),
         ("weight", "weight"),
         (convert("status", str), "magento_status"),
@@ -234,10 +234,12 @@ class ProductImportMapper(Component):
     @mapping
     def external_id(self, record):
         """Magento 2 to use sku as external id, because this is used as the
-        slug in the product REST API"""
-        if self.collection.version == "2.0":
-            return {"external_id": record["sku"]}
-
+        slug in the product REST API
+        Always use the sku in external_id and the product_id in magento_internal_id
+        The binder will return the correct `external_field` to use 
+        """
+        return {"external_id": record["sku"]}
+    
     # @mapping
     # def is_active(self, record):
     #     """Check if the product is active in Magento

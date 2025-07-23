@@ -89,9 +89,11 @@ class MagentoBinding(models.AbstractModel):
 
     def sync_from_magento(self):
         for binding in self:
-            binding.with_delay(identity_key=identity_exact).import_record(
-                binding.backend_id, binding.external_id, force=True
-            )
+            with binding.backend_id.work_on(self._name) as work:
+                external_id = work.component(usage="binder").to_external(binding)
+                binding.with_delay(identity_key=identity_exact).import_record(
+                    binding.backend_id, external_id, force=True
+                )
 
     def sync_to_magento(self):
         for binding in self:

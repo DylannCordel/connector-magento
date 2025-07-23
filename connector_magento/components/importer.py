@@ -188,7 +188,6 @@ class MagentoImporter(AbstractComponent):
         if not isinstance(self.external_id, str):
             self.external_id = str(self.external_id)
         lock_name = f"import({self.backend_record._name}, {self.backend_record.id}, {self.work.model_name}, {external_id})"
-
         if not isinstance(external_id, dict):
             try:
                 self.magento_record = self._get_magento_data(**kwargs)
@@ -203,7 +202,6 @@ class MagentoImporter(AbstractComponent):
             del kwargs["binding"]
         else:
             binding = self._get_binding()
-
         if not force and self._is_uptodate(binding):
             return _("Already up-to-date.")
 
@@ -224,11 +222,10 @@ class MagentoImporter(AbstractComponent):
         else:
             record = self._create_data(map_record, **kwargs)
             binding = self._create(record, **kwargs)
-        if binding.external_id and binding.external_id != self.external_id:
-            self.external_id = binding.external_id
-
+        external_id = self.binder.to_external(binding)
+        if external_id and external_id != self.external_id:
+            self.external_id = external_id
         self.binder.bind(self.external_id, binding)
-
         self._after_import(binding, **kwargs)
 
     def _preprocess_magento_record(self):
