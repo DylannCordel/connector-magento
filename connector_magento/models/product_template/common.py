@@ -369,7 +369,6 @@ class ProductTemplateAdapter(Component):
                 "configurable-products/%s/children" % (self.escape(sku)), None
             )
             return res
-        # raise NotImplementedError
         return []
 
     def write(self, id, data, storeview=None, **kwargs):
@@ -406,8 +405,6 @@ class ProductTemplateAdapter(Component):
         :rtype: dict
         """
         # pylint: disable=method-required-super
-        # if self.collection.version == "1.7":
-        #    raise NotImplementedError
         res = super().read(external_id, attributes=attributes, storeview=storeview)
         if res:
             for attr in res.get("custom_attributes", []):
