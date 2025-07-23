@@ -98,11 +98,13 @@ class ProductAttributeExporter(Component):
         return result
 
     def _update(self, data, storeview_code=None, **kwargs):
-        if data.get('attribute_group_id'):  # we don't want to update this
-            del data['attribute_group_id']
-        if data.get('attribute_set_id'):  # we don't want to update this
-            del data['attribute_set_id']
-        result = super(ProductAttributeExporter, self)._update(data, storeview=storeview_code, **kwargs)
+        if data.get("attribute_group_id"):  # we don't want to update this
+            del data["attribute_group_id"]
+        if data.get("attribute_set_id"):  # we don't want to update this
+            del data["attribute_set_id"]
+        result = super(ProductAttributeExporter, self)._update(
+            data, storeview=storeview_code, **kwargs
+        )
         self._update_attribute_with_result(data)
         return result
 

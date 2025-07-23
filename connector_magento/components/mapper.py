@@ -51,4 +51,5 @@ def normalize_datetime(field):
             if dt:
                 return dt.strftime("%Y-%m-%d %H:%M:%S")
         return None
+
     return modifier

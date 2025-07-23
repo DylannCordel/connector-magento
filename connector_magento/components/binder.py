@@ -87,16 +87,18 @@ class MagentoModelBinder(Component):
 
 class MagentoProductBinder(Component):
     """
-    See MagentoModelBinder + define a different external_field 
+    See MagentoModelBinder + define a different external_field
     if we use Magento 1.x or 2.x
     """
 
     _name = "magento.binder.product"
-    _inherit = ["magento.binder", ]
+    _inherit = [
+        "magento.binder",
+    ]
     _apply_on = [
         "magento.product.product",
     ]
-    
+
     @property
     def _external_field(self):
         if self.collection.version == "1.7":

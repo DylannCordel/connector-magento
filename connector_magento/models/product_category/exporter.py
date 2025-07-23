@@ -86,7 +86,7 @@ class ProductCategoryExporter(Component):
             )
 
     def _has_to_skip(self):
-        """ Allow export of any category - removed artificial root category restriction """
+        """Allow export of any category - removed artificial root category restriction"""
         return False
 
     def _should_import(self):

@@ -148,7 +148,7 @@ class ProductTemplateDefinitionExporter(Component):
         _logger.info("Do update record with: %s", data)
         importer.run(data, force=True, binding=self.binding)
         self.external_id = data["sku"]
-        self.magento_id = data['id']
+        self.magento_id = data["id"]
 
     def _update_binding_record_after_write(self, data):
         for attr in data.get("custom_attributes", []):
@@ -270,7 +270,7 @@ class ProductTemplateExportMapper(Component):
     _apply_on = ["magento.product.template"]
 
     direct = [
-        ('name', 'name'),
+        ("name", "name"),
     ]
 
     @mapping
@@ -334,13 +334,18 @@ class ProductTemplateExportMapper(Component):
                 lambda ptav: ptav.attribute_id.id in available_attribute_ids
             ).sorted(lambda ptav: ptav.attribute_id.id)
             for ptav in ptavs:
-                binding_value_ids = ptav.product_attribute_value_id.magento_bind_ids.filtered(
-                    lambda m: m.backend_id == record.backend_id
+                binding_value_ids = (
+                    ptav.product_attribute_value_id.magento_bind_ids.filtered(
+                        lambda m: m.backend_id == record.backend_id
+                    )
                 )
                 binding_value = binding_value_ids[0] if binding_value_ids else None
                 if not binding_value:
                     continue
-                key += "%s%s" % (ptav.attribute_id.id, ptav.product_attribute_value_id.name)
+                key += "%s%s" % (
+                    ptav.attribute_id.id,
+                    ptav.product_attribute_value_id.name,
+                )
             if key not in pavalues:
                 links.append(mp.magento_internal_id)
                 pavalues.append(key)
@@ -396,13 +401,11 @@ class ProductTemplateExportMapper(Component):
         return {"website_ids": website_ids}
 
     def category_ids(self, record):
-        magento_categ_ids = record.product_category_public_ids.mapped('magento_bind_ids').filtered(
-            lambda bc: bc.backend_id.id == record.backend_id.id)
-        c_ids = magento_categ_ids.mapped('external_id')
-        return {
-            'attribute_code': 'category_ids',
-            'value': c_ids
-        }
+        magento_categ_ids = record.product_category_public_ids.mapped(
+            "magento_bind_ids"
+        ).filtered(lambda bc: bc.backend_id.id == record.backend_id.id)
+        c_ids = magento_categ_ids.mapped("external_id")
+        return {"attribute_code": "category_ids", "value": c_ids}
 
     @mapping
     def weight(self, record):

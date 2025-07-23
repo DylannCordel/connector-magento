@@ -236,10 +236,10 @@ class ProductImportMapper(Component):
         """Magento 2 to use sku as external id, because this is used as the
         slug in the product REST API
         Always use the sku in external_id and the product_id in magento_internal_id
-        The binder will return the correct `external_field` to use 
+        The binder will return the correct `external_field` to use
         """
         return {"external_id": record["sku"]}
-    
+
     # @mapping
     # def is_active(self, record):
     #     """Check if the product is active in Magento
@@ -497,7 +497,7 @@ class ProductImporter(Component):
     @property
     def _magento_id_field(self):
         return "sku" if self.collection.version == "1.7" else "product_id"
-    
+
     def _import_bundle_dependencies(self):
         """Import the dependencies for a Bundle"""
         if self.collection.version == "1.7":

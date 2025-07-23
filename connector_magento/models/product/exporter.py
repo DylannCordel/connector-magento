@@ -83,13 +83,13 @@ class ProductProductExporter(Component):
         if external_id:
             self._update_binding_record_after_create(data)
         return external_id
-        
+
     def _update(self, data):
         updated = super()._update(data)
         if updated:
             self._update_binding_record_after_write(data)
         return updated
-        
+
     # def _should_import(self):
     #     """ Before the export, compare the update date
     #     in Magento and the last sync date in Odoo,
@@ -206,12 +206,19 @@ class ProductProductExporter(Component):
             )
             if not m_att_id and att_line.attribute_id.id not in exported_attribute_ids:
                 # We need to export the attribute first
-                self._export_dependency(att_line.attribute_id, "magento.product.attribute", binding_extra_vals={
-                    'attribute_set_ids' : [(4,record.attribute_set_id.id,0)] if record.attribute_set_id else False,
-                    'attribute_code': att_line.attribute_id.name.lower(),
-                })
+                self._export_dependency(
+                    att_line.attribute_id,
+                    "magento.product.attribute",
+                    binding_extra_vals={
+                        "attribute_set_ids": [(4, record.attribute_set_id.id, 0)]
+                        if record.attribute_set_id
+                        else False,
+                        "attribute_code": att_line.attribute_id.name.lower(),
+                    },
+                )
                 m_att_id = att_line.attribute_id.magento_bind_ids.filtered(
-                    lambda m: m.backend_id == self.backend_record)
+                    lambda m: m.backend_id == self.backend_record
+                )
                 if m_att_id:
                     exported_attribute_ids.append(m_att_id)
             if not m_att_id.external_id:
@@ -282,23 +289,25 @@ class ProductProductExportMapper(Component):
     def names(self, record):
         # 1. Detectar si la plantilla tiene atributos create_variant == 'always'
         always_attrs = [
-            line for line in record.product_tmpl_id.attribute_line_ids
-            if line.attribute_id.create_variant == 'always'
+            line
+            for line in record.product_tmpl_id.attribute_line_ids
+            if line.attribute_id.create_variant == "always"
         ]
         if not always_attrs:
-            return {'name': record.name}
+            return {"name": record.name}
 
         # 2. Recoger valores de atributos de la variante
         ptav_values = [
-            v for v in record.product_template_attribute_value_ids
-            if v.attribute_id.create_variant == 'always'
+            v
+            for v in record.product_template_attribute_value_ids
+            if v.attribute_id.create_variant == "always"
         ]
 
         # 3. Separar color si existe
         color_value = None
         other_values = []
         for v in ptav_values:
-            if v.attribute_id.name.strip().lower() == 'color':
+            if v.attribute_id.name.strip().lower() == "color":
                 color_value = v.name
             else:
                 other_values.append((v.attribute_id.sequence, v.name))
@@ -311,9 +320,9 @@ class ProductProductExportMapper(Component):
         values.extend([name for seq, name in other_values])
 
         # 5. Componer el nombre final con espacios delante y detrás del guion
-        sep = ' - '
+        sep = " - "
         name = sep.join([record.product_tmpl_id.name] + values)
-        return {'name': name}
+        return {"name": name}
 
     # @mapping
     # def visibility(self, record):
@@ -373,13 +382,15 @@ class ProductProductExportMapper(Component):
             mimetype = mime.from_buffer(base64.b64decode(record.image_1920))
             extension = self.mime_to_extension.get(mimetype, "jpg")
             name = record.name or record.default_code
-            filename = f'{name}_{record.id}_{image_count}.{extension}'
-            images.append({
-                "name": name,
-                "mimetype": mimetype,
-                "b64": record.image_1920,
-                "filename": filename
-            })
+            filename = f"{name}_{record.id}_{image_count}.{extension}"
+            images.append(
+                {
+                    "name": name,
+                    "mimetype": mimetype,
+                    "b64": record.image_1920,
+                    "filename": filename,
+                }
+            )
             image_count += 1
         for image in getattr(record, "product_variant_image_ids", None) or []:
             if not image.image_1920:
@@ -387,16 +398,18 @@ class ProductProductExportMapper(Component):
             mimetype = mime.from_buffer(base64.b64decode(image.image_1920))
             extension = self.mime_to_extension.get(mimetype, "jpg")
             name = image.name or record.name or record.default_code
-            filename = f'{name}_{record.id}_{image_count}.{extension}'
-            images.append({
-                "name": name,
-                "mimetype": mimetype,
-                "b64": image.image_1920,
-                "filename": filename
-            })
+            filename = f"{name}_{record.id}_{image_count}.{extension}"
+            images.append(
+                {
+                    "name": name,
+                    "mimetype": mimetype,
+                    "b64": image.image_1920,
+                    "filename": filename,
+                }
+            )
             image_count += 1
         return images
-        
+
     @mapping
     def media_gallery_entries(self, record):
         entries = [
@@ -458,7 +471,12 @@ class ProductProductExportMapper(Component):
                 )
                 if not matt_id:
                     continue
-                if not matt_id.is_user_visible or not matt_id.field_id or not matt_id.create_variant == 'always' or line.value_count > 1:
+                if (
+                    not matt_id.is_user_visible
+                    or not matt_id.field_id
+                    or not matt_id.create_variant == "always"
+                    or line.value_count > 1
+                ):
                     continue
                 for value_id in line.value_ids:
                     mvalue_id = value_id.magento_bind_ids.filtered(
@@ -466,24 +484,34 @@ class ProductProductExportMapper(Component):
                     )
                     if not mvalue_id:
                         continue
-                    custom_attributes.append({
-                        'attribute_code': matt_id.attribute_code,
-                        'value': mvalue_id.external_id.split('_')[1]
-                    })
+                    custom_attributes.append(
+                        {
+                            "attribute_code": matt_id.attribute_code,
+                            "value": mvalue_id.external_id.split("_")[1],
+                        }
+                    )
             for value_id in record.product_template_attribute_value_ids:
                 """ Deal with Attributes in the 'template' part of Odoo"""
-                if value_id.attribute_id.create_variant != 'always':
+                if value_id.attribute_id.create_variant != "always":
                     continue
-                matt_id = value_id.attribute_id.magento_bind_ids.filtered(lambda m: m.backend_id == record.backend_id)
+                matt_id = value_id.attribute_id.magento_bind_ids.filtered(
+                    lambda m: m.backend_id == record.backend_id
+                )
                 if not matt_id:
                     continue
-                mvalue_id = value_id.product_attribute_value_id.magento_bind_ids.filtered(lambda m: m.backend_id == record.backend_id)
+                mvalue_id = (
+                    value_id.product_attribute_value_id.magento_bind_ids.filtered(
+                        lambda m: m.backend_id == record.backend_id
+                    )
+                )
                 if not mvalue_id:
                     continue
-                custom_attributes.append({
-                    'attribute_code': matt_id.attribute_code,
-                    'value': mvalue_id.external_id.split('_')[1]
-                })
+                custom_attributes.append(
+                    {
+                        "attribute_code": matt_id.attribute_code,
+                        "value": mvalue_id.external_id.split("_")[1],
+                    }
+                )
             if record.attribute_set_id:
                 for matt_id in record.attribute_set_id.attribute_ids.filtered(
                     lambda a: a.field_id
