@@ -270,7 +270,8 @@ class ProductTemplateImporter(Component):
                 )
 
     def _import_dependencies(self, **kwargs):
-        return
+        if self.collection.version == "1.7":
+            return
         record = self.magento_record
         # Import attribute deps
         for attribute in record.get("custom_attributes"):
@@ -448,9 +449,11 @@ class ProductTemplateImportMapper(Component):
             return {"odoo_id": template.id}
         return {}
 
-    # @mapping
-    # def type(self, record):
-    #    return {'detailed_type': 'product'}
+    @mapping
+    def type(self, record):
+        if self.collection.version == "1.7":
+            return {}
+        return {"detailed_type": "product"}
 
     @mapping
     def attributes_no_variant(self, record):
