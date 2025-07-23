@@ -454,6 +454,8 @@ class ProductTemplateImportMapper(Component):
 
     @mapping
     def attributes_no_variant(self, record):
+        if self.collection.version == "1.7":
+            return {}
         attribute_binder = self.binder_for("magento.product.attribute")
         value_binder = self.binder_for("magento.product.attribute.value")
         data = {"attribute_line_ids": []}
