@@ -201,12 +201,29 @@ class MagentoAPI:
 
 class MagentoCRUDAdapter(AbstractComponent):
     """External Records Adapter for Magento"""
-
     # pylint: disable=method-required-super
 
     _name = "magento.crud.adapter"
     _inherit = ["base.backend.adapter", "base.magento.connector"]
     _usage = "backend.adapter"
+
+    """
+    SOAP_FAULT_CODES must be overridden to manage soap errors
+    expected format :
+        {
+            "<method_name>": {
+                <error_code>: <raisable callable>,
+            }
+        }
+    exemple:
+        {
+            "ol_catalog_product.info": {
+                101: IDMissingInBackend,
+                102: lambda e: SomeException("woot", e) if "something" in str(e) else Another(e),
+            }
+        }
+    """
+    SOAP_FAULT_CODES = {}
 
     def search(self, filters=None):
         """Search records according to some criterias
@@ -249,9 +266,25 @@ class MagentoCRUDAdapter(AbstractComponent):
                 "MagentoAPI instance to be able to use the "
                 "Backend Adapter."
             )
-        return magento_api.call(
-            method, arguments, http_method=http_method, storeview=storeview
-        )
+        try:
+            ret = magento_api.call(
+                method, arguments, http_method=http_method, storeview=storeview
+            )
+        except Exception as e:
+            self._handle_api_exception(e, method)
+            raise
+        return ret
+
+    def _handle_api_exception(self, e, method):
+        if self.collection.version == "1.7":
+            if not isinstance(e, xmlrpc.client.Fault):
+                return
+            if (
+                method not in self.SOAP_FAULT_CODES
+                or e.faultCode not in self.SOAP_FAULT_CODES[method]
+            ):
+                return
+            raise self.SOAP_FAULT_CODES[method][e.faultCode](e)
 
 
 class GenericAdapter(AbstractComponent):
