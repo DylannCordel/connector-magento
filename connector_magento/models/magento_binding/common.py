@@ -101,6 +101,8 @@ class MagentoBinding(models.AbstractModel):
 
     def delete_from_magento(self):
         for binding in self:
-            binding.with_delay(identity_key=identity_exact).export_delete_record(
-                binding.backend_id, binding.external_id
-            )
+            with binding.backend_id.work_on(self._name) as work:
+                external_id = work.component(usage="binder").to_external(binding)
+                binding.with_delay(identity_key=identity_exact).export_delete_record(
+                    binding.backend_id, external_id
+                )
