@@ -260,19 +260,11 @@ class ProductProductAdapter(Component):
     _magento2_key = "sku"
     _admin_path = "/{model}/edit/id/{id}"
     _magento2_name = "product"
-
-    def _call(self, method, arguments=None, http_method=None, storeview=None):
-        try:
-            return super()._call(
-                method, arguments, http_method=http_method, storeview=storeview
-            )
-        except xmlrpc.client.Fault as err:
-            # this is the error in the Magento API
-            # when the product does not exist
-            if err.faultCode == 101:
-                raise IDMissingInBackend
-            else:
-                raise
+    SOAP_FAULT_CODES = {
+        "ol_catalog_product.info": {
+            101: lambda msg, original_exception, method: IDMissingInBackend(msg),
+        }
+    }
 
     def search(self, filters=None, from_date=None, to_date=None):
         """Search records according to some criteria
